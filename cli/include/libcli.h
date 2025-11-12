@@ -41,6 +41,10 @@ int Bid(int, int, int, int);
 int Join(int, int, const char*, int);
 // returns recv string len. recvline must have size >= MAXLINE
 int Recv(int, char*);
+// only Player[0] can Lock
+int Lock(int);
+// only Player[0] can set to Private; PIN must be 4-digit number
+int Privt(int, int);
 
 #ifdef __cplusplus
 }
