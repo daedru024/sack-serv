@@ -10,3 +10,18 @@ Group 5
 [Git Branch Tutorial](https://learngitbranching.js.org)
 
 [How to mix C and C++](https://isocpp.org/wiki/faq/mixing-c-and-cpp)
+
+
+## SERV MSG FORMAT
+
+| Message | Format | Details |
+| -------- | -------- | -------- |
+| Start game | `GAME_START` | - |
+| Played card | `c {PlayerID} {code}` | `code` `1` if played `-1` if error |
+| Notify bid | `BID {NextPlayerID}` | - |
+| PlayerID bid | `b {PlayerID} {amount}` | `amount` `-1` if chk failed |
+| End bid | `be {PlayerID} {amount}` | `PlayerID` wins with price `amount` <br> `PlayerID` -1 if nobody won |
+| Show scores | `ws {stk[:][:] won[:]} {score[:]}` | For example<br><pre>`ws 4 7 -3 2 ... 2 30 12 75`<br>`   ^stk   ^ won ^ ^score`</pre>If `stk[i][j]` was rabbit then `stk[i][j] = -rabbit[k]` |
+| Room info (available) | `ra {RoomID} {n_Players} {username[:] color[:]} {code}` | `code` `1` if need PIN, `0` otherwise<br>`color[i]` `-1` if player `i` not ready |
+| Room info (unavailable) | `ru {RoomID} {n_Players} {rnd}` | `rnd` current round |
+| Room error | `re {code}` | `0` Full<br>`1` Locked<br>`2` Private<br>`3` WrongPIN |
