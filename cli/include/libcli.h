@@ -1,6 +1,10 @@
 #ifndef __lib_cli
 #define __lib_cli
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <sys/ioctl.h>
@@ -37,5 +41,9 @@ int Bid(int, int, int, int);
 int Join(int, int, const char*, int);
 // returns recv string len. recvline must have size >= MAXLINE
 int Recv(int, char*);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
