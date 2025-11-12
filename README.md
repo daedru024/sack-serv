@@ -1,6 +1,8 @@
 # Sack
 Group 5
 
+## Resources
+
 [Google Docs](https://docs.google.com/document/d/1KJuRKPFrfK2quckfHBYk5hHsKSz3aNUdc9Iluq7cPcg/edit?usp=sharing) 
 
 [Proposal 2](https://drive.google.com/file/d/1YB_iCYVWqQ926iERTgNX0shaOcNT17l3/view?usp=sharing) 
@@ -25,3 +27,13 @@ Group 5
 | Room info (available) | `ra {RoomID} {n_Players} {username[:] color[:]} {code}` | `code` `1` if need PIN, `0` otherwise<br>`color[i]` `-1` if player `i` not ready |
 | Room info (unavailable) | `ru {RoomID} {n_Players} {rnd}` | `rnd` current round |
 | Room error | `re {code}` | `0` Full<br>`1` Locked<br>`2` Private<br>`3` WrongPIN |
+
+## CLIENT MSG FORMAT
+
+| Message | Format | Details |
+| -------- | -------- | -------- |
+| Lock room | `3` | Only `player[0]` can lock room |
+| Make private | `5 {PIN}` | Only `player[0]` can make room private |
+| Join room | `11 {RoomID} {username} {PIN}` | `PIN` `-1` if room is public |
+| Play card | `13 {PlayerID} {cardID} {MaskUc}` | - |
+| Bid | `17 {PlayerID} {amount} {rem_money}` | - |
