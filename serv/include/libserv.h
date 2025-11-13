@@ -12,6 +12,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <limits.h>
+#include <stdarg.h>
 
 #define	LISTENQ	1024
 #define	MAXLINE	4096
@@ -23,4 +24,7 @@ void Listen(int, int);
 int Poll(struct pollfd*, unsigned long);
 void Write(int, const void*, size_t);
 
+void err_msg(const char*, ...);
+void err_quit(const char*, ...);
+void err_sys(const char*, ...);
 #endif

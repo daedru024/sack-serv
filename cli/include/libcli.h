@@ -14,6 +14,7 @@ extern "C" {
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <stdarg.h>
 
 #define	LISTENQ	1024
 #define	MAXLINE	4096
@@ -35,6 +36,10 @@ int Privt(int, int);
 // returns recv string len. recvline must have size >= MAXLINE
 int Recv(int, char*);
 void Write(int, const void*, size_t);
+
+void err_msg(const char*, ...);
+void err_quit(const char*, ...);
+void err_sys(const char*, ...);
 
 #ifdef __cplusplus
 }
