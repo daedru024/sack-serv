@@ -29,9 +29,10 @@ SRC_DIR := src
 OBJ_DIR := obj
 TARGET := sackServ
 
-OBJ_FILES = $(OBJDIR)/*.o
+C_FILES = $(wildcard $(SRC_DIR)/*.c)
+OBJ_FILES = $(C_FILES:$(SRC_DIR)/%.c=$(OBJ_DIR)/%.o)
 
-$(OBJ_DIR)/*.o: $(SRC_DIR)/%.c
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 all: platform clean mkdir $(TARGET)
