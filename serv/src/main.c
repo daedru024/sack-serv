@@ -10,7 +10,7 @@ int main(int argc, char** argv) {
     struct sockaddr_in cliaddr, servaddr;
 
     if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-        err_quit("socket error");
+        err_sys("socket error");
 
     bzero(&servaddr, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
@@ -18,7 +18,7 @@ int main(int argc, char** argv) {
     servaddr.sin_port = htons(SERV_PORT);
 
     if(bind(listenfd, (struct sockaddr*) &servaddr, sizeof(servaddr)) < 0) 
-        err_quit("bind error");
+        err_sys("bind error");
     
     Listen(listenfd, LISTENQ);
 
