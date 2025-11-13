@@ -95,5 +95,5 @@ void Write(int sockfd, const void *vptr, size_t n) {
         rem -= nw;
         ptr += nw;
     }
-    return n;
+    return;
 }
