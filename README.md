@@ -27,6 +27,7 @@ Group 5
 | Room info (available) | `ra {RoomID} {n_Players} {username[:] color[:]} {code}` | `code` `1` if need PIN, `0` otherwise<br>`color[i]` `-1` if player `i` not ready |
 | Room info (unavailable) | `ru {RoomID} {n_Players} {rnd}` | `rnd` current round |
 | Room error | `re {code}` | `0` Full<br>`1` Locked<br>`2` Private<br>`3` WrongPIN |
+| Auto play | `ap` | End connection |
 
 ## CLIENT MSG FORMAT
 
