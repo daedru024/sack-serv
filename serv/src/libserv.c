@@ -82,3 +82,48 @@ void err_sys(const char *fmt, ...) {
     va_end(ap);
     exit(1);
 }
+
+void init_RoomInfo(Rooms* tar) {
+    tar->stat = 0;
+    tar->passkey = -1;
+    tar->num_players = 0;
+    tar->rnd = 0;
+    memset(tar->stks, 0, 45*sizeof(int));
+    memset(tar->rabbit, 2, 5*sizeof(int));
+    memset(tar->wonstk, -1, 9*sizeof(int));
+    tar->sPlayer = 0;
+    for(int i=0; i<5; i++) {
+        bzero(&(tar->plyData[i]), sizeof(Player));
+        tar->plyData[i].col = -1;
+        tar->plyData[i].rem_money = 15;
+    }
+    return;
+}
+
+void GetRoomInfo(Rooms* tar, int rID, char* ret) {
+    char tmp[20];
+    if(tar->stat == 0) {
+        // available
+        sprintf(ret, "ra %d %d ", rID, tar->num_players);
+        for(int i=0; i<tar->num_players; i++) {
+            sprintf(tmp, "%s %d ", tar->plyData[i].username, tar->plyData[i].col);
+            strcat(ret, tmp);
+        }
+        if(tar->passkey == -1) strcat(ret,"0 ");
+        else strcat(ret, "1 ");
+    }
+    else {
+        // unavailable
+        sprintf(ret, "ru %d %d %d ", rID, tar->num_players, tar->rnd);
+    }
+    return;
+}
+
+void bitw1(int* tar, int k) {
+    *tar = ((*tar) | (1<<k));
+    return;
+}
+
+bool bitis1(int tar, int k) {
+    return (tar&(1<<k));
+}

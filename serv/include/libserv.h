@@ -7,12 +7,14 @@
 #include <poll.h>
 #include <errno.h>
 
+#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <limits.h>
 #include <stdarg.h>
+#include <stdbool.h>
 
 #define	LISTENQ	1024
 #define	MAXLINE	4096
@@ -27,4 +29,34 @@ void Write(int, const void*, size_t);
 void err_msg(const char*, ...);
 void err_quit(const char*, ...);
 void err_sys(const char*, ...);
+
+void init_RoomInfo(Rooms*);
+void GetRoomInfo(Rooms*, int, char*);
+
+//random rabbit
+
+void bitw1(int*, int);
+bool bitis1(int, int);
+
+typedef struct {
+    char username[10];
+    int sockfd;
+    int col; //-1 if not ready
+    int rem_money;
+    int MASK_Uc;
+    int MASK_St;
+} Player;
+
+typedef struct {
+    int stat; //0 if vacant 1 play_card 2 bid 3 score 4 otherwise
+    int passkey; //-1 if public
+    int num_players;
+    int rnd; //0-9
+    int stks[9][5]; //round i card j
+    int rabbit[5];  //player x’s rabbit is rabbit[x], x=0-4
+    int wonstk[9]; //-1 if nobody won
+    int sPlayer; //who plays first
+    Player plyData[5];
+} Rooms;
+
 #endif
