@@ -13,27 +13,28 @@ extern "C" {
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <errno.h>
 
 #define	LISTENQ	1024
 #define	MAXLINE	4096
 #define	SERV_PORT 9877
 
-//functions
-// connect, return sockfd if success
-int Connect(const char *);
-int Close(int);
-// returns -1 if write error. use Recv() after
-int PlayCard(int, int, int, int);
-// bid, rem_money is your money BEFORE you bid this time
+// rem_money is your money BEFORE you bid this time
 int Bid(int, int, int, int);
-// send room choice, PIN must be -1 by default
+int Close(int);
+// returns sockfd if success
+int Connect(const char *);
+// send room choice, PIN must be -1 if room is public
 int Join(int, int, const char*, int);
-// returns recv string len. recvline must have size >= MAXLINE
-int Recv(int, char*);
 // only Player[0] can Lock
 int Lock(int);
+// returns -1 if write error. use Recv() after
+int PlayCard(int, int, int, int);
 // only Player[0] can set to Private; PIN must be 4-digit number
 int Privt(int, int);
+// returns recv string len. recvline must have size >= MAXLINE
+int Recv(int, char*);
+void Write(int, const void*, size_t);
 
 #ifdef __cplusplus
 }
