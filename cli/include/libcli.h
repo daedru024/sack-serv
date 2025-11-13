@@ -6,19 +6,8 @@ extern "C" {
 #endif
 
 #include <sys/socket.h>
-#include <sys/sockio.h>
-#include <sys/ioctl.h>
-//#include <sys/filio.h>
-
 #include <netinet/in.h>
 #include <arpa/inet.h>
-
-//#include <sys/time.h>
-//#include <time.h>
-//#include <errno.h>
-//#include <fcntl.h>
-//#include <netdb.h>
-//#include <signal.h>
 
 #include <stdio.h>
 #include <stdlib.h>
