@@ -35,6 +35,6 @@ Group 5
 | -------- | -------- | -------- |
 | Lock room | `3` | Only `player[0]` can lock room<br>If someone exits, room is automatically unlocked |
 | Make private | `5 {PIN}` | Only `player[0]` can make room private |
-| Join room | `11 {RoomID} {username} {PIN}` | `PIN` `-1` if room is public |
+| Join room | `11 {RoomID} {username} {PIN}` | `PIN` `10000` if room is public |
 | Play card | `13 {PlayerID} {cardID} {MaskUc}` | - |
 | Bid | `17 {PlayerID} {amount} {rem_money}` | - |

@@ -25,7 +25,7 @@ int Bid(int, int, int, int);
 int Close(int);
 // returns sockfd if success
 int Connect(const char *);
-// send room choice, PIN must be -1 if room is public
+// send room choice, PIN must be 10000 if room is public
 int Join(int, int, const char*, int);
 // only Player[0] can Lock
 int Lock(int);
