@@ -21,7 +21,9 @@
 #define	MAXLINE	4096
 #define	SERV_PORT 9877
 
+
 //data struct
+
 typedef struct {
     char username[10];
     int sockfd;
@@ -44,23 +46,31 @@ typedef struct {
     Player plyData[5];
 } Rooms;
 
+
 //elem func
+
 int Accept(int, struct sockaddr*, socklen_t*);
 int Close(int);
 void Listen(int, int);
 int Poll(struct pollfd*, unsigned long);
+void SendAll(Rooms*, char*);
 void Write(int, const void*, size_t);
 
+
 //err func
+
 void err_msg(const char*, ...);
 void err_quit(const char*, ...);
 void err_sys(const char*, ...);
 
+
 //game mechanism
+
 void ExitCli(int, Rooms*, int);
 void GetRoomInfo(Rooms*, int, char*);
 void init_RoomInfo(Rooms*);
 bool isValidStr(char*, int);
+void JoinRoom(Rooms*, char*, int);
 
 //random rabbit
 
