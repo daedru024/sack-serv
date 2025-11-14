@@ -26,7 +26,7 @@ Group 5
 | Show scores | `ws {stk[:][:] won[:]} {score[:]}` | For example<br><pre>`ws 4 7 -3 2 ... 2 30 12 75`<br>`   ^stk   ^ won ^ ^score`</pre>If `stk[i][j]` was rabbit then `stk[i][j] = -rabbit[k]` |
 | Room info (available) | `ra {RoomID} {n_Players} {username[:] color[:]} {code}` | `code` `1` if need PIN, `0` otherwise<br>`color[i]` `-1` if player `i` not ready |
 | Room info (unavailable) | `ru {RoomID} {n_Players} {rnd}` | `rnd` current round, `0` if room locked |
-| Room error | `re {code}` | `0` Full<br>`1` Locked<br>`2` Private<br>`3` WrongPIN |
+| Room error | `re {code}` | `0` Full<br>`1` Locked<br>`2` Private<br>`3` WrongPIN<br>`4` Playing |
 | Auto play | `ap` | End connection |
 | Rabbit is | `ri {card_taken}` | - |
 
