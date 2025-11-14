@@ -28,6 +28,7 @@ Group 5
 | Room info (unavailable) | `ru {RoomID} {n_Players} {rnd}` | `rnd` current round, `0` if room locked |
 | Room error | `re {code}` | `0` Full<br>`1` Locked<br>`2` Private<br>`3` WrongPIN |
 | Auto play | `ap` | End connection |
+| Rabbit is | `ri {card_taken}` | - |
 
 ## CLIENT MSG FORMAT
 
