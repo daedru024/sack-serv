@@ -44,7 +44,7 @@ int Connect(const char *servip) {
 
 int Join(int sockfd, int RoomID, const char* username, int PIN) {
     char buf[MAXLINE];
-    sprintf(buf, "11 %d %s %d", RoomID, username, PIN);
+    sprintf(buf, "11 %d %s %05d", RoomID, username, PIN);
     Write(sockfd, buf, strlen(buf));
     return 0;
 }
