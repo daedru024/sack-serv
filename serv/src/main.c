@@ -12,7 +12,7 @@ int main(int argc, char** argv) {
     struct sockaddr_in cliaddr, servaddr;
     Rooms room[3] = malloc(3*sizeof(Rooms));
     
-    for(int k=0; k<3; ++k) init_RoomInfo(&room[k]);
+    for(int k=0; k<3; k++) init_RoomInfo(&room[k]);
 
     if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         err_sys("socket error");
@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
             for(i=1; i<FOPEN_MAX; i++) {
                 if(clients[i].fd < 0) {
                     bool has_vacant_room = 0;
-                    GetRoomInfo(&room[0],0,buf);
+                    GetRoomInfo(&room[0], 0, buf);
                     char tmp[MAXLINE];
                     for(int j=1; j<3; j++) {
                         GetRoomInfo(&room[j], j, tmp);
@@ -76,6 +76,18 @@ int main(int argc, char** argv) {
                         // client reset conn
                         Close(sockfd);
                         clients[i].fd = -1;
+                        if(in_room[i] != -1) {
+                            //if in room[i]
+                            //1. stat==0
+                            //resend room_info
+                            //2. stat==1 || 2
+                            //auto_play
+                            //3. stat==3
+                            //do_nothing
+                            //4. stat==4
+                            //unlock, resend room_info
+                            in_room[i] = -1;
+                        }
                     }
                     else err_sys("read error");
                 }
@@ -85,7 +97,12 @@ int main(int argc, char** argv) {
                 }
                 else {
                     //TODO
-                    //not in room->sent msg to choose room
+                    if(!isValidStr(buf, n)) {
+                        //handle closed client
+                    }
+                    //not in room->choose room
+                    if(in_room[i] == -1) {
+                    }
                     //in room, status 0 or 4
                     //in room, status 1
                     //in room, status 2

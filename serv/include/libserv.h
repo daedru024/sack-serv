@@ -8,6 +8,7 @@
 #include <errno.h>
 
 #include <time.h>
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -20,24 +21,7 @@
 #define	MAXLINE	4096
 #define	SERV_PORT 9877
 
-int Accept(int, struct sockaddr*, socklen_t*);
-int Close(int);
-void Listen(int, int);
-int Poll(struct pollfd*, unsigned long);
-void Write(int, const void*, size_t);
-
-void err_msg(const char*, ...);
-void err_quit(const char*, ...);
-void err_sys(const char*, ...);
-
-void init_RoomInfo(Rooms*);
-void GetRoomInfo(Rooms*, int, char*);
-
-//random rabbit
-
-void bitw1(int*, int);
-bool bitis1(int, int);
-
+//data struct
 typedef struct {
     char username[10];
     int sockfd;
@@ -49,14 +33,38 @@ typedef struct {
 
 typedef struct {
     int stat; //0 if vacant 1 play_card 2 bid 3 score 4 otherwise
-    int passkey; //-1 if public
+    int passkey; //10000 if public
     int num_players;
     int rnd; //0-9
     int stks[9][5]; //round i card j
     int rabbit[5];  //player x’s rabbit is rabbit[x], x=0-4
     int wonstk[9]; //-1 if nobody won
     int sPlayer; //who plays first
+    bool auto_player;
     Player plyData[5];
 } Rooms;
+
+//elem func
+int Accept(int, struct sockaddr*, socklen_t*);
+int Close(int);
+void Listen(int, int);
+int Poll(struct pollfd*, unsigned long);
+void Write(int, const void*, size_t);
+
+//err func
+void err_msg(const char*, ...);
+void err_quit(const char*, ...);
+void err_sys(const char*, ...);
+
+//game mechanism
+void ExitCli(int, Rooms*, int);
+void GetRoomInfo(Rooms*, int, char*);
+void init_RoomInfo(Rooms*);
+bool isValidStr(char*, int);
+
+//random rabbit
+
+void bitw1(int*, int);
+bool bitis1(int, int);
 
 #endif
