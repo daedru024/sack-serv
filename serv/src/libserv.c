@@ -37,6 +37,10 @@ int Poll(struct pollfd *fdarr, unsigned long nfds) {
     return n;
 }
 
+void SendAll(Rooms* tar, char* msg) {
+    //TODO
+}
+
 void Write(int sockfd, const void *vptr, size_t n) {
     size_t rem;
     ssize_t nw;
@@ -108,7 +112,7 @@ void ExitCli(int sockfd, Rooms* Rm, int rID) {
         return;
     }
     if(Rm->stat == 1 || Rm->stat == 2) {
-        //
+        //TODO
     }
     //  2. stat==1 || 2
     //      auto_play
@@ -164,6 +168,15 @@ bool isValidStr(char* tar, int n) {
         if(!isdigit(tar[i])) return 0;
     return 1;
 }
+
+void JoinRoom(Rooms* tar, char* usrn, int fd) {
+    int playerID = tar->num_players;
+    strcpy(tar->plyData[playerID].username, usrn);
+    tar->plyData[playerID].sockfd = fd;
+    if(++tar->num_players == 5) tar->stat = 4;
+    return;
+}
+
 
 void bitw1(int* tar, int k) {
     *tar = ((*tar) | (1<<k));
