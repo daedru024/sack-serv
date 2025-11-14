@@ -56,6 +56,8 @@ void Write(int sockfd, const void *vptr, size_t n) {
     return;
 }
 
+
+
 void err_msg(const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
@@ -83,21 +85,35 @@ void err_sys(const char *fmt, ...) {
     exit(1);
 }
 
-void init_RoomInfo(Rooms* tar) {
-    tar->stat = 0;
-    tar->passkey = -1;
-    tar->num_players = 0;
-    tar->rnd = 0;
-    memset(tar->stks, 0, 45*sizeof(int));
-    memset(tar->rabbit, 2, 5*sizeof(int));
-    memset(tar->wonstk, -1, 9*sizeof(int));
-    tar->sPlayer = 0;
-    for(int i=0; i<5; i++) {
-        bzero(&(tar->plyData[i]), sizeof(Player));
-        tar->plyData[i].col = -1;
-        tar->plyData[i].rem_money = 15;
+
+
+void ExitCli(int sockfd, Rooms* Rm, int rID) {
+    if(Rm->stat == 0 || (Rm->stat == 4 && Rm->rnd == 0)) {
+        // resend room info, unlock
+        char tmp[MAXLINE];
+        Rm->stat = 0;
+        if(--(Rm->num_players) == 0) {
+            init_RoomInfo(Rm);
+            return;
+        }
+        for(int i=0; i<Rm->num_players; i++) {
+            if(Rm->plyData[i].sockfd == sockfd) {
+                Rm->plyData[i] = Rm->plyData[i+1];
+                Rm->plyData[i+1].sockfd = sockfd;
+            }
+        }
+        GetRoomInfo(Rm, rID, tmp);
+        for(int i=0; i<Rm->num_players; i++) 
+            Write(Rm->plyData[i].sockfd, tmp, strlen(tmp));
+        return;
     }
-    return;
+    if(Rm->stat == 1 || Rm->stat == 2) {
+        //
+    }
+    //  2. stat==1 || 2
+    //      auto_play
+    //  3. stat==3
+    //      do_nothing
 }
 
 void GetRoomInfo(Rooms* tar, int rID, char* ret) {
@@ -109,14 +125,44 @@ void GetRoomInfo(Rooms* tar, int rID, char* ret) {
             sprintf(tmp, "%s %d ", tar->plyData[i].username, tar->plyData[i].col);
             strcat(ret, tmp);
         }
-        if(tar->passkey == -1) strcat(ret,"0 ");
+        if(tar->passkey == 10000) strcat(ret,"0 ");
         else strcat(ret, "1 ");
     }
-    else {
-        // unavailable
+    else // unavailable
         sprintf(ret, "ru %d %d %d ", rID, tar->num_players, tar->rnd);
+    return;
+}
+
+void init_RoomInfo(Rooms* tar) {
+    tar->stat = 0;
+    tar->passkey = 10000;
+    tar->num_players = 0;
+    tar->rnd = 0;
+    memset(tar->stks, 0, 45*sizeof(int));
+    memset(tar->rabbit, 2, 5*sizeof(int));
+    memset(tar->wonstk, -1, 9*sizeof(int));
+    tar->sPlayer = 0;
+    tar->auto_player = 0;
+    for(int i=0; i<5; i++) {
+        bzero(&(tar->plyData[i]), sizeof(Player));
+        tar->plyData[i].col = -1;
+        tar->plyData[i].rem_money = 15;
     }
     return;
+}
+
+bool isValidStr(char* tar, int n) {
+    tar[n] = 0;
+    if(n > 1 && tar[0] == '1' && tar[1] == '1') {
+        //11 {RoomID} {username} {PIN}
+        if(!isdigit(tar[3])) return 0;
+        for(int i=n-5; i<n; i++) 
+            if(!isdigit(tar[i])) return 0;
+        return 1;
+    }
+    for(int i=0; i<n; i++) 
+        if(!isdigit(tar[i])) return 0;
+    return 1;
 }
 
 void bitw1(int* tar, int k) {
