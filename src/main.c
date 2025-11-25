@@ -1,5 +1,7 @@
 #include "libserv.h"
 
+#define DEBUG
+
 struct pollfd clients[FOPEN_MAX];
 int in_room[FOPEN_MAX]; //hash map
 
@@ -46,7 +48,7 @@ int main(int argc, char** argv) {
 
             for(i=1; i<FOPEN_MAX; i++) {
                 if(clients[i].fd < 0) {
-                    bool has_vacant_room = 0;
+                    bool has_vacant_room = (room[0].stat == 0);
                     GetRoomInfo(&room[0], 0, buf);
                     char tmp[MAXLINE];
                     for(int j=1; j<3; j++) {
@@ -95,14 +97,22 @@ int main(int argc, char** argv) {
                     }
                 }
                 else {
+                    buf[n] = 0;
+#ifdef DEBUG
+                    printf("Recv: %s\n", buf);
+#endif
                     //TODO
                     if(!isValidStr(buf, n)) {
+#ifdef DEBUG
+                        printf("Invalid string received\n");
+#endif
                         Close(sockfd);
                         clients[i].fd = -1;
                         if(in_room[i] != -1) {
                             ExitCli(sockfd, &room[in_room[i]], in_room[i]);
                             in_room[i] = -1;
                         }
+                        continue;
                     }
                     //not in room->choose room
                     if(in_room[i] == -1) {
@@ -137,9 +147,7 @@ int main(int argc, char** argv) {
                             //client joins room
                             JoinRoom(&room[rID], usrn, sockfd);
                             char tmp[MAXLINE];
-                            GetRoomInfo(&room[rID], rID, tmp);
-                            tmp[0] = 'i';
-                            tmp[1] = 'n';
+                            GetOneRoomInfo(&room[rID], rID, tmp);
                             SendAll(&room[rID], tmp);
                             in_room[i] = rID;
                             //TODO
@@ -159,7 +167,7 @@ int main(int argc, char** argv) {
                         //in room, status 1
                         //in room, status 2
                     }
-                    Write(sockfd, buf, n);
+                    //Write(sockfd, buf, n);
                 }
 
                 if(--nready <= 0) break;

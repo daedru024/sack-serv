@@ -67,6 +67,7 @@ void err_sys(const char*, ...);
 //game mechanism
 
 void ExitCli(int, Rooms*, int);
+void GetOneRoomInfo(Rooms*, int, char*);
 void GetRoomInfo(Rooms*, int, char*);
 void init_RoomInfo(Rooms*);
 bool isValidStr(char*, int);

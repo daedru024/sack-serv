@@ -1,5 +1,7 @@
 #include "libserv.h"
 
+#define DEBUG
+
 extern struct pollfd clients[FOPEN_MAX];
 extern int in_room[FOPEN_MAX]; //hash map
 
@@ -51,10 +53,13 @@ int Poll(struct pollfd *fdarr, unsigned long nfds) {
 void SendAll(Rooms* tar, char* msg) {
     for(int i=0; i<tar->num_players; i++) {
         if(tar->plyData[i].sockfd == -1) continue;
+        //sprintf(msg, "%s%d ", msg, i);
         if(Write(tar->plyData[i].sockfd, msg, strlen(msg)) == -1) {
             Close(tar->plyData[i].sockfd);
             tar->plyData[i].sockfd = -1;
+            continue;
         }
+        //Write(tar->plyData[i].sockfd, "%d ", i);
     }
     return;
 }
@@ -76,6 +81,9 @@ int Write(int sockfd, const void *vptr, size_t n) {
         rem -= nw;
         ptr += nw;
     }
+#ifdef DEBUG
+    printf("Sent: %s\n", (char*)vptr);
+#endif
     return 0;
 }
 
@@ -126,7 +134,7 @@ void ExitCli(int sockfd, Rooms* Rm, int rID) {
                 Rm->plyData[i+1].sockfd = sockfd;
             }
         }
-        GetRoomInfo(Rm, rID, tmp);
+        GetOneRoomInfo(Rm, rID, tmp);
         SendAll(Rm, tmp);
         return;
     }
@@ -158,17 +166,27 @@ void ExitCli(int sockfd, Rooms* Rm, int rID) {
     if(Rm->stat == 3) return;
 }
 
-void GetRoomInfo(Rooms* tar, int rID, char* ret) {
+void GetOneRoomInfo(Rooms* tar, int rID, char* ret) {
+    //in {RoomID} {n_Players} {username[:] color[:]} {locked} {PIN} {playerID}
     char tmp[20];
+    sprintf(ret, "in %d %d ", rID, tar->num_players);
+    for(int i=0; i<tar->num_players; i++) {
+        sprintf(tmp, "%s %d ", tar->plyData[i].username, tar->plyData[i].col);
+        strcat(ret, tmp);
+    }
+    sprintf(ret, "%s%d %d ", ret, (tar->stat==4 && tar->rnd==0), tar->passkey);
+    return;
+}
+
+void GetRoomInfo(Rooms* tar, int rID, char* ret) {
     if(tar->stat == 0) {
         // available
         sprintf(ret, "ra %d %d ", rID, tar->num_players);
         for(int i=0; i<tar->num_players; i++) {
-            sprintf(tmp, "%s %d ", tar->plyData[i].username, tar->plyData[i].col);
-            strcat(ret, tmp);
+            sprintf(ret, "%s %s %d ", ret, tar->plyData[i].username, tar->plyData[i].col);
         }
-        if(tar->passkey == 10000) strcat(ret,"0 ");
-        else strcat(ret, "1 ");
+        if(tar->passkey == 10000) sprintf(ret, "%s0 ", ret);
+        else sprintf(ret, "%s1 ", ret);
     }
     else // unavailable
         sprintf(ret, "ru %d %d %d ", rID, tar->num_players, tar->rnd);
