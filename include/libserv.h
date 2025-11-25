@@ -26,7 +26,7 @@
 
 typedef struct {
     char username[10];
-    int sockfd;
+    int sockfd; //-1 if auto play
     int col; //-1 if not ready
     int rem_money;
     int MASK_Uc;
@@ -34,7 +34,7 @@ typedef struct {
 } Player;
 
 typedef struct {
-    int stat; //0 if vacant 1 play_card 2 bid 3 score 4 otherwise
+    int stat; //0 vacant 1 play_card 2 bid 3 score 4 otherwise
     int passkey; //10000 if public
     int num_players;
     int rnd; //0-9
@@ -54,7 +54,7 @@ int Close(int);
 void Listen(int, int);
 int Poll(struct pollfd*, unsigned long);
 void SendAll(Rooms*, char*);
-void Write(int, const void*, size_t);
+int Write(int, const void*, size_t);
 
 
 //err func
@@ -71,7 +71,10 @@ void GetRoomInfo(Rooms*, int, char*);
 void init_RoomInfo(Rooms*);
 bool isValidStr(char*, int);
 void JoinRoom(Rooms*, char*, int);
-
+void MakePlay(Rooms*, int);
+void MakePrivate(Rooms*, char*);
+void RecvBid(Rooms*, int, char*);
+void RecvPlay(Rooms*, int, char*);
 //random rabbit
 
 void bitw1(int*, int);

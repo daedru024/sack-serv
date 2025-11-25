@@ -1,5 +1,8 @@
 #include "libserv.h"
 
+extern struct pollfd clients[FOPEN_MAX];
+extern int in_room[FOPEN_MAX]; //hash map
+
 int Accept(int sockfd, struct sockaddr* sa, socklen_t *ptr) {
     int n;
 again:
@@ -13,7 +16,15 @@ again:
 }
 
 int Close(int sockfd) {
+    for(int i=1; i<FOPEN_MAX; i++) {
+        if(clients[i].fd == sockfd) {
+            clients[i].fd = -1;
+            in_room[i] = -1;
+            break;
+        }
+    }
     if(close(sockfd) == -1) {
+        if(errno == EBADF) return -1;
         err_sys("close error");
         return -1;
     }
@@ -38,26 +49,34 @@ int Poll(struct pollfd *fdarr, unsigned long nfds) {
 }
 
 void SendAll(Rooms* tar, char* msg) {
-    //TODO
+    for(int i=0; i<tar->num_players; i++) {
+        if(tar->plyData[i].sockfd == -1) continue;
+        if(Write(tar->plyData[i].sockfd, msg, strlen(msg)) == -1) {
+            Close(tar->plyData[i].sockfd);
+            tar->plyData[i].sockfd = -1;
+        }
+    }
+    return;
 }
 
-void Write(int sockfd, const void *vptr, size_t n) {
+int Write(int sockfd, const void *vptr, size_t n) {
     size_t rem;
     ssize_t nw;
     const char *ptr = vptr;
     rem = n;
     while(rem>0) {
-        if((nw = write(sockfd, ptr, rem)) <= 0) {
-            if(nw<0 && errno == EINTR) nw = 0;
+        if((nw = send(sockfd, ptr, rem, MSG_NOSIGNAL)) <= 0) {
+            if(nw<0 && errno == EINTR) continue;
+            if(nw == 0) return -1;
             else {
                 err_sys("Write error");
-                return;
+                return -1;
             }
         }
         rem -= nw;
         ptr += nw;
     }
-    return;
+    return 0;
 }
 
 
@@ -92,6 +111,7 @@ void err_sys(const char *fmt, ...) {
 
 
 void ExitCli(int sockfd, Rooms* Rm, int rID) {
+    int pID = 0;
     if(Rm->stat == 0 || (Rm->stat == 4 && Rm->rnd == 0)) {
         // resend room info, unlock
         char tmp[MAXLINE];
@@ -107,17 +127,35 @@ void ExitCli(int sockfd, Rooms* Rm, int rID) {
             }
         }
         GetRoomInfo(Rm, rID, tmp);
-        for(int i=0; i<Rm->num_players; i++) 
-            Write(Rm->plyData[i].sockfd, tmp, strlen(tmp));
+        SendAll(Rm, tmp);
         return;
     }
-    if(Rm->stat == 1 || Rm->stat == 2) {
-        //TODO
+    char tmp[MAXLINE];
+    for(int i=0; i<Rm->num_players; i++) {
+        if(Rm->plyData[i].sockfd == sockfd) {
+            pID = i;
+            break;
+        }
     }
-    //  2. stat==1 || 2
-    //      auto_play
-    //  3. stat==3
-    //      do_nothing
+    if(Rm->stat == 1 || Rm->stat == 2) {
+        if(Rm->auto_player) {
+            char tmp[MAXLINE];
+            sprintf(tmp, "ap %d\n", pID);
+            SendAll(Rm, tmp);
+            for(int i=0; i<Rm->num_players; i++) 
+                Close(Rm->plyData[i].sockfd);
+            init_RoomInfo(Rm);
+            return;
+        }
+        else {
+            sprintf(tmp, "ap %d\n", pID);
+            SendAll(Rm, tmp);
+
+            //TODO auto play mech
+            return;
+        }
+    }
+    if(Rm->stat == 3) return;
 }
 
 void GetRoomInfo(Rooms* tar, int rID, char* ret) {

@@ -1,16 +1,19 @@
 #include "libserv.h"
 
+struct pollfd clients[FOPEN_MAX];
+int in_room[FOPEN_MAX]; //hash map
+
 int main(int argc, char** argv) {
     int i, maxi, listenfd, connfd, sockfd;
     int nready;
     ssize_t n;
     char buf[MAXLINE];
     socklen_t clilen;
-    struct pollfd clients[FOPEN_MAX];
-    int in_room[FOPEN_MAX]; //hash map
+    //struct pollfd clients[FOPEN_MAX];
+    //int in_room[FOPEN_MAX]; //hash map
     time_t lst_conn[FOPEN_MAX]; //last msg timestamp
     struct sockaddr_in cliaddr, servaddr;
-    Rooms room[3] = malloc(3*sizeof(Rooms));
+    Rooms* room = malloc(3*sizeof(Rooms));
     
     for(int k=0; k<3; k++) init_RoomInfo(&room[k]);
 
@@ -133,14 +136,29 @@ int main(int argc, char** argv) {
                         else {
                             //client joins room
                             JoinRoom(&room[rID], usrn, sockfd);
+                            char tmp[MAXLINE];
+                            GetRoomInfo(&room[rID], rID, tmp);
+                            tmp[0] = 'i';
+                            tmp[1] = 'n';
+                            SendAll(&room[rID], tmp);
+                            in_room[i] = rID;
                             //TODO
-                            //SendAll(&room[rID],)
                         }
                     }
-                    //TODO
-                    //in room, status 0 or 4
-                    //in room, status 1
-                    //in room, status 2
+                    else {
+                        int rID = in_room[i];
+                        switch (room[rID].stat) {
+                        case 0:
+                            /* code */
+                            break;
+                        
+                        default:
+                            break;
+                        }
+                        //in room, status 0 or 4
+                        //in room, status 1
+                        //in room, status 2
+                    }
                     Write(sockfd, buf, n);
                 }
 
