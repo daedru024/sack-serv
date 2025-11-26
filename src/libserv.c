@@ -4,6 +4,61 @@
 
 extern struct pollfd clients[FOPEN_MAX];
 extern int in_room[FOPEN_MAX]; //hash map
+extern time_t lst_conn[FOPEN_MAX]; //last msg timestamp
+extern Queue* q;
+
+/**** Queue functions ****/
+
+void init_Queue(Queue* q) {
+    q->dm_head = calloc(1, sizeof(Node));
+    q->dm_head->nxt = NULL;
+    q->tail = q->dm_head;
+}
+
+void Delete(Queue* q, int idx) {
+    Node* tmp = q->dm_head;
+    while(tmp->nxt != NULL) {
+        if(tmp->nxt->i == idx) {
+            Node* d = tmp->nxt;
+            tmp->nxt = d->nxt;
+            if(q->tail == d) q->tail = tmp;
+            free(d);
+            return;
+        }
+        tmp = tmp->nxt;
+    }
+}
+
+bool isEmpty(Queue* q) {
+    return (q->dm_head->nxt == NULL);
+}
+
+void pop(Queue* q) {
+    if(isEmpty(q)) return; 
+    Node* tmp = q->dm_head->nxt;
+    q->dm_head->nxt = tmp->nxt;
+    if(q->tail == tmp) q->tail = q->dm_head;
+    free(tmp);
+}
+
+void push(Queue* q, int sockfd, int roomID, int i) {
+    Delete(q, i);
+    Node* newNode = malloc(sizeof(Node));
+    newNode->sockfd = sockfd;
+    newNode->roomID = roomID;
+    newNode->i = i;
+    newNode->nxt = NULL;
+    q->tail->nxt = newNode;
+    q->tail = newNode;
+}
+
+Node* front(Queue* q) {
+    if(isEmpty(q)) return NULL;
+    return q->dm_head->nxt;
+}
+
+
+/**** Elem functions ****/
 
 int Accept(int sockfd, struct sockaddr* sa, socklen_t *ptr) {
     int n;
@@ -18,13 +73,8 @@ again:
 }
 
 int Close(int sockfd) {
-    for(int i=1; i<FOPEN_MAX; i++) {
-        if(clients[i].fd == sockfd) {
-            clients[i].fd = -1;
-            in_room[i] = -1;
-            break;
-        }
-    }
+    int n;
+    if(sockfd < 0) return 0;
     if(close(sockfd) == -1) {
         if(errno == EBADF) return -1;
         err_sys("close error");
@@ -51,15 +101,19 @@ int Poll(struct pollfd *fdarr, unsigned long nfds) {
 }
 
 void SendAll(Rooms* tar, char* msg) {
+    char tmp[MAXLINE];
     for(int i=0; i<tar->num_players; i++) {
-        if(tar->plyData[i].sockfd == -1) continue;
-        //sprintf(msg, "%s%d ", msg, i);
-        if(Write(tar->plyData[i].sockfd, msg, strlen(msg)) == -1) {
-            Close(tar->plyData[i].sockfd);
-            tar->plyData[i].sockfd = -1;
+        if(tar->plyData[i].i == -1) continue;
+        sprintf(tmp, "%s %d ", msg, i);
+        if(Write(clients[tar->plyData[i].i].fd, tmp, strlen(tmp)) == -1) {
+            ExitCli(tar->plyData[i].i, tar, in_room[tar->plyData[i].i]);
+            Close(clients[tar->plyData[i].i].fd);
+            tar->plyData[i].i = -1;
             continue;
         }
-        //Write(tar->plyData[i].sockfd, "%d ", i);
+        char tmp[3];
+        lst_conn[tar->plyData[i].i] = time(NULL);
+        push(q, clients[tar->plyData[i].i].fd, in_room[tar->plyData[i].i], tar->plyData[i].i);
     }
     return;
 }
@@ -88,6 +142,7 @@ int Write(int sockfd, const void *vptr, size_t n) {
 }
 
 
+/**** Error functions ****/
 
 void err_msg(const char *fmt, ...) {
     va_list ap;
@@ -117,8 +172,27 @@ void err_sys(const char *fmt, ...) {
 }
 
 
+/**** Game mechanism ****/
 
-void ExitCli(int sockfd, Rooms* Rm, int rID) {
+void ChooseColor(Rooms* Rm, int idx, char* msg) {
+    int col, k;
+    char buf[MAXLINE];
+    sscanf(msg, "7 %d", &col);
+    for(int i=0; i<Rm->num_players; i++) {
+        if(Rm->plyData[i].col == col) {
+            GetOneRoomInfo(Rm, in_room[idx], buf);
+            SendAll(Rm, buf);
+            return;
+        }
+        else if(Rm->plyData[i].i == idx) 
+            k = i;
+    }
+    Rm->plyData[k].col = col;
+    GetOneRoomInfo(Rm, in_room[idx], buf);
+    SendAll(Rm, buf);
+}
+
+void ExitCli(int idx, Rooms* Rm, int rID) {
     int pID = 0;
     if(Rm->stat == 0 || (Rm->stat == 4 && Rm->rnd == 0)) {
         // resend room info, unlock
@@ -129,9 +203,9 @@ void ExitCli(int sockfd, Rooms* Rm, int rID) {
             return;
         }
         for(int i=0; i<Rm->num_players; i++) {
-            if(Rm->plyData[i].sockfd == sockfd) {
+            if(Rm->plyData[i].i == idx) {
                 Rm->plyData[i] = Rm->plyData[i+1];
-                Rm->plyData[i+1].sockfd = sockfd;
+                Rm->plyData[i+1].i = idx;
             }
         }
         GetOneRoomInfo(Rm, rID, tmp);
@@ -140,7 +214,7 @@ void ExitCli(int sockfd, Rooms* Rm, int rID) {
     }
     char tmp[MAXLINE];
     for(int i=0; i<Rm->num_players; i++) {
-        if(Rm->plyData[i].sockfd == sockfd) {
+        if(Rm->plyData[i].i == idx) {
             pID = i;
             break;
         }
@@ -151,7 +225,7 @@ void ExitCli(int sockfd, Rooms* Rm, int rID) {
             sprintf(tmp, "ap %d\n", pID);
             SendAll(Rm, tmp);
             for(int i=0; i<Rm->num_players; i++) 
-                Close(Rm->plyData[i].sockfd);
+                Close(clients[Rm->plyData[i].i].fd);
             init_RoomInfo(Rm);
             return;
         }
@@ -174,7 +248,7 @@ void GetOneRoomInfo(Rooms* tar, int rID, char* ret) {
         sprintf(tmp, "%s %d ", tar->plyData[i].username, tar->plyData[i].col);
         strcat(ret, tmp);
     }
-    sprintf(ret, "%s%d %d ", ret, (tar->stat==4 && tar->rnd==0), tar->passkey);
+    sprintf(ret, "%s%d %04d ", ret, (tar->stat==4 && tar->rnd==0), tar->passkey);
     return;
 }
 
@@ -217,22 +291,67 @@ bool isValidStr(char* tar, int n) {
         //11 {RoomID} {username} {PIN}
         if(!isdigit(tar[3])) return 0;
         for(int i=n-5; i<n; i++) 
-            if(!isdigit(tar[i])) return 0;
+            if(!isdigit(tar[i]) && tar[i] != ' ') return 0;
         return 1;
     }
     for(int i=0; i<n; i++) 
-        if(!isdigit(tar[i])) return 0;
+        if(!isdigit(tar[i]) && tar[i] != ' ') return 0;
     return 1;
 }
 
-void JoinRoom(Rooms* tar, char* usrn, int fd) {
+void JoinRoom(Rooms* tar, char* usrn, int idx) {
     int playerID = tar->num_players;
     strcpy(tar->plyData[playerID].username, usrn);
-    tar->plyData[playerID].sockfd = fd;
+    tar->plyData[playerID].i = idx;
     if(++tar->num_players == 5) tar->stat = 4;
     return;
 }
 
+void Lock(Rooms* tar, int i) {
+    if(tar->plyData[0].i == i && tar->num_players > 2 && tar->stat == 0)
+        tar->stat = 4;
+    char tmp[MAXLINE];  
+    GetOneRoomInfo(tar, in_room[i], tmp);
+    SendAll(tar, tmp);
+}
+
+void MakePlay(Rooms* tar, int pID) {
+    //TODO
+}
+
+void MakePrivate(Rooms* tar, int idx, char* Pwd, int k) {
+    int PIN;
+    sscanf(Pwd, "5 %d", &PIN);
+    if(PIN == 10000 && tar->plyData[0].i == idx) 
+        tar->passkey = 10000;
+    else if(k >= 2 && tar->passkey == 10000) {
+        sprintf(Pwd, "re 6"); //6 too many private rooms
+        Write(clients[idx].fd, Pwd, strlen(Pwd));
+        return;
+    }
+    else if(tar->plyData[0].i == idx && k < 2) {
+        tar->passkey = PIN;
+    }
+    char tmp[MAXLINE];  
+    GetOneRoomInfo(tar, in_room[idx], tmp);
+    SendAll(tar, tmp);
+}
+
+void RecvBid(Rooms* tar, int pID, char* msg) {
+    //TODO
+}
+
+void RecvPlay(Rooms* tar, int pID, char* msg) {
+    //TODO
+}
+
+void Unlock(Rooms* tar, int i) {
+    if(tar->stat == 4 && tar->plyData[0].i == i)
+        tar->stat = 0;
+    char tmp[MAXLINE];  
+    GetOneRoomInfo(tar, in_room[i], tmp);
+    SendAll(tar, tmp);
+}
 
 void bitw1(int* tar, int k) {
     *tar = ((*tar) | (1<<k));
@@ -241,4 +360,9 @@ void bitw1(int* tar, int k) {
 
 bool bitis1(int tar, int k) {
     return (tar&(1<<k));
+}
+
+bool isAlive(int sockfd) {
+    if(Write(sockfd, " ", 1) == -1) return false;
+    return true;
 }
