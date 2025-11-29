@@ -23,6 +23,9 @@ void Delete(Queue* q, int idx) {
             tmp->nxt = d->nxt;
             if(q->tail == d) q->tail = tmp;
             free(d);
+#ifdef DEBUG
+            printf("Deleted %d\n", idx);
+#endif
             return;
         }
         tmp = tmp->nxt;
@@ -39,6 +42,9 @@ void pop(Queue* q) {
     q->dm_head->nxt = tmp->nxt;
     if(q->tail == tmp) q->tail = q->dm_head;
     free(tmp);
+#ifdef DEBUG
+    printf("Pop\n");
+#endif
 }
 
 void push(Queue* q, int sockfd, int roomID, int i) {
@@ -50,6 +56,9 @@ void push(Queue* q, int sockfd, int roomID, int i) {
     newNode->nxt = NULL;
     q->tail->nxt = newNode;
     q->tail = newNode;
+#ifdef DEBUG
+    printf("Pushed %d\n", i);
+#endif
 }
 
 Node* front(Queue* q) {
@@ -95,7 +104,7 @@ void Listen(int sockfd, int backlog) {
 
 int Poll(struct pollfd *fdarr, unsigned long nfds) {
     int n;
-    if((n = poll(fdarr, nfds, -1)) < 0) 
+    if((n = poll(fdarr, nfds, 5000)) < 0) 
         err_sys("poll error");
     return n;
 }

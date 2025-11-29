@@ -43,12 +43,13 @@ int main(int argc, char** argv) {
     maxi = 0;
 
     for( ; ; ) {
-        if(!isEmpty(q)) {
+        while(!isEmpty(q)) {
             Node* frontNode = front(q);
             time_t curr_time = time(NULL);
             if(clients[frontNode->i].fd != frontNode->sockfd) {
                 //client disconnected
                 pop(q);
+                continue;
             }
             if(difftime(curr_time, lst_conn[frontNode->i]) >= 60) {
                 //timeout
@@ -59,6 +60,7 @@ int main(int argc, char** argv) {
                 pop(q);
                 continue;
             }
+            break;
         }
         nready = Poll(clients, maxi+1);
         if(clients[0].revents & POLLRDNORM) {
@@ -140,6 +142,7 @@ int main(int argc, char** argv) {
                             in_room[i] = -1;
                         }
                         Close(sockfd);
+                        if(--nready <= 0) break;
                         continue;
                     }
                     //not in room->choose room
@@ -226,7 +229,6 @@ int main(int argc, char** argv) {
                         }
                     }
                 }
-
                 if(--nready <= 0) break;
             }
         }
