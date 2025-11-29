@@ -1,7 +1,11 @@
 #include "libserv.h"
 
+#define DEBUG
+
 struct pollfd clients[FOPEN_MAX];
 int in_room[FOPEN_MAX]; //hash map
+time_t lst_conn[FOPEN_MAX]; //last msg timestamp
+Queue* q;
 
 int main(int argc, char** argv) {
     int i, maxi, listenfd, connfd, sockfd;
@@ -9,13 +13,13 @@ int main(int argc, char** argv) {
     ssize_t n;
     char buf[MAXLINE];
     socklen_t clilen;
-    //struct pollfd clients[FOPEN_MAX];
-    //int in_room[FOPEN_MAX]; //hash map
-    time_t lst_conn[FOPEN_MAX]; //last msg timestamp
     struct sockaddr_in cliaddr, servaddr;
     Rooms* room = malloc(3*sizeof(Rooms));
     
     for(int k=0; k<3; k++) init_RoomInfo(&room[k]);
+
+    q = malloc(sizeof(Queue));
+    init_Queue(q);
 
     if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         err_sys("socket error");
@@ -39,6 +43,25 @@ int main(int argc, char** argv) {
     maxi = 0;
 
     for( ; ; ) {
+        while(!isEmpty(q)) {
+            Node* frontNode = front(q);
+            time_t curr_time = time(NULL);
+            if(clients[frontNode->i].fd != frontNode->sockfd) {
+                //client disconnected
+                pop(q);
+                continue;
+            }
+            if(difftime(curr_time, lst_conn[frontNode->i]) >= 60) {
+                //timeout
+                int sockfd = frontNode->sockfd;
+                Close(sockfd);
+                clients[frontNode->i].fd = -1;
+                in_room[frontNode->i] = -1;
+                pop(q);
+                continue;
+            }
+            break;
+        }
         nready = Poll(clients, maxi+1);
         if(clients[0].revents & POLLRDNORM) {
             clilen = sizeof(cliaddr);
@@ -46,7 +69,7 @@ int main(int argc, char** argv) {
 
             for(i=1; i<FOPEN_MAX; i++) {
                 if(clients[i].fd < 0) {
-                    bool has_vacant_room = 0;
+                    bool has_vacant_room = (room[0].stat == 0);
                     GetRoomInfo(&room[0], 0, buf);
                     char tmp[MAXLINE];
                     for(int j=1; j<3; j++) {
@@ -56,7 +79,11 @@ int main(int argc, char** argv) {
                     }
                     Write(connfd, buf, strlen(buf));
                     if(!has_vacant_room) Close(connfd);
-                    else clients[i].fd = connfd;
+                    else {
+                        clients[i].fd = connfd;
+                        lst_conn[i] = time(NULL);
+                        push(q, connfd, -1, i);
+                    }
                     break;
                 }
             }
@@ -77,32 +104,46 @@ int main(int argc, char** argv) {
                 if((n = read(sockfd, buf, MAXLINE)) < 0) {
                     if(errno == ECONNRESET) {
                         // client reset conn
-                        Close(sockfd);
+                        Delete(q, i);
                         clients[i].fd = -1;
                         if(in_room[i] != -1) {
-                            ExitCli(sockfd, &room[in_room[i]], in_room[i]);
+                            ExitCli(i, &room[in_room[i]], in_room[i]);
                             in_room[i] = -1;
                         }
+                        Close(sockfd);
                     }
                     else err_sys("read error");
                 }
                 else if(n == 0) {
-                    Close(sockfd);
+                    Delete(q, i);
                     clients[i].fd = -1;
                     if(in_room[i] != -1) {
-                        ExitCli(sockfd, &room[in_room[i]], in_room[i]);
+                        ExitCli(i, &room[in_room[i]], in_room[i]);
                         in_room[i] = -1;
                     }
+                    Close(sockfd);
                 }
                 else {
+                    buf[n] = 0;
+#ifdef DEBUG
+                    printf("Recv: %s\n", buf);
+#endif
+                    lst_conn[i] = time(NULL);
+                    push(q, sockfd, in_room[i], i);
                     //TODO
                     if(!isValidStr(buf, n)) {
-                        Close(sockfd);
+#ifdef DEBUG
+                        printf("Invalid string received\n");
+#endif
+                        Delete(q, i);
                         clients[i].fd = -1;
                         if(in_room[i] != -1) {
-                            ExitCli(sockfd, &room[in_room[i]], in_room[i]);
+                            ExitCli(i, &room[in_room[i]], in_room[i]);
                             in_room[i] = -1;
                         }
+                        Close(sockfd);
+                        if(--nready <= 0) break;
+                        continue;
                     }
                     //not in room->choose room
                     if(in_room[i] == -1) {
@@ -113,6 +154,8 @@ int main(int argc, char** argv) {
                         if(rID > 2 || rID < 0) {
                             Close(sockfd);
                             clients[i].fd = -1;
+                            Delete(q, i);
+                            continue;
                         }
                         else if(room[rID].stat != 0) {
                             if(room[rID].stat == 4) {
@@ -135,11 +178,9 @@ int main(int argc, char** argv) {
                         }
                         else {
                             //client joins room
-                            JoinRoom(&room[rID], usrn, sockfd);
+                            JoinRoom(&room[rID], usrn, i);
                             char tmp[MAXLINE];
-                            GetRoomInfo(&room[rID], rID, tmp);
-                            tmp[0] = 'i';
-                            tmp[1] = 'n';
+                            GetOneRoomInfo(&room[rID], rID, tmp);
                             SendAll(&room[rID], tmp);
                             in_room[i] = rID;
                             //TODO
@@ -149,19 +190,45 @@ int main(int argc, char** argv) {
                         int rID = in_room[i];
                         switch (room[rID].stat) {
                         case 0:
-                            /* code */
+                            //possibilities: 
+                            //lock/unlock
+                            if(buf[0] == '3') 
+                                Lock(&room[rID], i);
+                            else if(buf[0] == '2') 
+                                Unlock(&room[rID], i);
+                            //choose color
+                            else if(buf[0] == '7') 
+                                ChooseColor(&room[rID], i, buf);
+                            //make private/public
+                            else if(buf[0] == '5') {
+                                int k = 0;
+                                for(int j=0; j<3; j++) 
+                                    if(room[j].passkey != 10000) k++;
+                                MakePrivate(&room[rID], i, buf, k);
+                            }
                             break;
-                        
+                        case 1:
+                            //play_card
+                            //TODO
+                            break;
+                        case 2:
+                            //bid
+                            //TODO
+                            break;
+                        case 3:
+                            //in room, status 3
+                            //continue game
+                            //TODO
+                            break;
+                        case 4:
+                            //in room, status 4
+                            //TODO
+                            break;
                         default:
-                            break;
+                            err_quit("Unknown room status %d\n", room[rID].stat);
                         }
-                        //in room, status 0 or 4
-                        //in room, status 1
-                        //in room, status 2
                     }
-                    Write(sockfd, buf, n);
                 }
-
                 if(--nready <= 0) break;
             }
         }

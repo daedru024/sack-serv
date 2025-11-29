@@ -26,7 +26,7 @@
 
 typedef struct {
     char username[10];
-    int sockfd; //-1 if auto play
+    int i; //-1 if auto play
     int col; //-1 if not ready
     int rem_money;
     int MASK_Uc;
@@ -45,6 +45,25 @@ typedef struct {
     bool auto_player;
     Player plyData[5];
 } Rooms;
+
+typedef struct Node {
+    int sockfd, roomID, i;
+    struct Node* nxt;
+} Node;
+
+typedef struct {
+    Node* dm_head;
+    Node* tail;
+} Queue;
+
+//queue func
+
+void init_Queue(Queue*);
+void Delete(Queue*, int);
+bool isEmpty(Queue*);
+void pop(Queue*);
+void push(Queue*, int, int, int);
+Node* front(Queue*);
 
 
 //elem func
@@ -66,18 +85,23 @@ void err_sys(const char*, ...);
 
 //game mechanism
 
+void ChooseColor(Rooms*, int, char*);
 void ExitCli(int, Rooms*, int);
+void GetOneRoomInfo(Rooms*, int, char*);
 void GetRoomInfo(Rooms*, int, char*);
 void init_RoomInfo(Rooms*);
 bool isValidStr(char*, int);
 void JoinRoom(Rooms*, char*, int);
+void Lock(Rooms*, int);
 void MakePlay(Rooms*, int);
-void MakePrivate(Rooms*, char*);
+void MakePrivate(Rooms*, int, char*, int);
 void RecvBid(Rooms*, int, char*);
 void RecvPlay(Rooms*, int, char*);
+void Unlock(Rooms*, int);
 //random rabbit
 
 void bitw1(int*, int);
 bool bitis1(int, int);
+bool isAlive(int);
 
 #endif
