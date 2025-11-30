@@ -65,6 +65,12 @@ void pop(Queue*);
 void push(Queue*, int, int, int);
 Node* front(Queue*);
 
+//err func
+
+void err_msg(const char*, ...);
+void err_quit(const char*, ...);
+void err_sys(const char*, ...);
+
 
 //elem func
 
@@ -72,15 +78,8 @@ int Accept(int, struct sockaddr*, socklen_t*);
 int Close(int);
 void Listen(int, int);
 int Poll(struct pollfd*, unsigned long);
-void SendAll(Rooms*, char*);
+void SendAll(Rooms*, char*, bool);
 int Write(int, const void*, size_t);
-
-
-//err func
-
-void err_msg(const char*, ...);
-void err_quit(const char*, ...);
-void err_sys(const char*, ...);
 
 
 //game mechanism
@@ -97,11 +96,11 @@ void MakePlay(Rooms*, int);
 void MakePrivate(Rooms*, int, char*, int);
 void RecvBid(Rooms*, int, char*);
 void RecvPlay(Rooms*, int, char*);
+void StartGame(Rooms*);
 void Unlock(Rooms*, int);
 //random rabbit
 
 void bitw1(int*, int);
 bool bitis1(int, int);
-bool isAlive(int);
 
 #endif

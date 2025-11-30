@@ -100,21 +100,9 @@ int main(int argc, char** argv) {
 
         for(i=1; i<=maxi; i++) {
             if((sockfd = clients[i].fd) < 0) continue;
-            if(clients[i].revents & (POLLRDNORM | POLLERR)) {
-                if((n = read(sockfd, buf, MAXLINE)) < 0) {
-                    if(errno == ECONNRESET) {
-                        // client reset conn
-                        Delete(q, i);
-                        clients[i].fd = -1;
-                        if(in_room[i] != -1) {
-                            ExitCli(i, &room[in_room[i]], in_room[i]);
-                            in_room[i] = -1;
-                        }
-                        Close(sockfd);
-                    }
-                    else err_sys("read error");
-                }
-                else if(n == 0) {
+            if(!(clients[i].revents & (POLLRDNORM | POLLERR))) continue;
+            if((n = read(sockfd, buf, MAXLINE)) <= 0) {
+                if(n == 0 || errno == ECONNRESET) {
                     Delete(q, i);
                     clients[i].fd = -1;
                     if(in_room[i] != -1) {
@@ -123,114 +111,119 @@ int main(int argc, char** argv) {
                     }
                     Close(sockfd);
                 }
-                else {
-                    buf[n] = 0;
+                else err_sys("read error");
+                if(--nready <= 0) break;
+                continue;
+            }
+            if(buf[0] == ' ') {
+                push(q, sockfd, in_room[i], i);
+                if(--nready <= 0) break;
+                continue;
+            }
+            buf[n] = 0;
 #ifdef DEBUG
-                    printf("Recv: %s\n", buf);
+            printf("Recv: %s\n", buf);
 #endif
-                    lst_conn[i] = time(NULL);
-                    push(q, sockfd, in_room[i], i);
-                    //TODO
-                    if(!isValidStr(buf, n)) {
+            lst_conn[i] = time(NULL);
+            push(q, sockfd, in_room[i], i);
+            //TODO
+            if(!isValidStr(buf, n)) {
 #ifdef DEBUG
-                        printf("Invalid string received\n");
+                printf("Invalid string received\n");
 #endif
-                        Delete(q, i);
-                        clients[i].fd = -1;
-                        if(in_room[i] != -1) {
-                            ExitCli(i, &room[in_room[i]], in_room[i]);
-                            in_room[i] = -1;
-                        }
-                        Close(sockfd);
-                        if(--nready <= 0) break;
-                        continue;
+                Delete(q, i);
+                clients[i].fd = -1;
+                if(in_room[i] != -1) {
+                    ExitCli(i, &room[in_room[i]], in_room[i]);
+                    in_room[i] = -1;
+                }
+                Close(sockfd);
+                if(--nready <= 0) break;
+                continue;
+            }
+            //not in room->choose room
+            if(in_room[i] == -1) {
+                char usrn[15];
+                int dm, rID, pKey;
+                sscanf(buf, "%d %d %s %d", &dm, &rID, usrn, &pKey);
+                int errcd = -1;
+                if(rID > 2 || rID < 0) {
+                    Delete(q, i);
+                    clients[i].fd = -1;
+                    Close(sockfd);
+                }
+                else if(room[rID].stat != 0) {
+                    if(room[rID].stat == 4) {
+                        if(room[rID].num_players<5) errcd = 1; // 1 Locked
+                        else errcd = 0; // 0 Full
                     }
-                    //not in room->choose room
-                    if(in_room[i] == -1) {
-                        char usrn[15];
-                        int dm, rID, pKey;
-                        sscanf(buf, "%d %d %s %d", &dm, &rID, usrn, &pKey);
-                        int errcd = -1;
-                        if(rID > 2 || rID < 0) {
-                            Close(sockfd);
-                            clients[i].fd = -1;
-                            Delete(q, i);
-                            continue;
-                        }
-                        else if(room[rID].stat != 0) {
-                            if(room[rID].stat == 4) {
-                                if(room[rID].num_players<5) errcd = 1; // 1 Locked
-                                else errcd = 0; // 0 Full
-                            }
-                            else errcd = 4; // 4 Playing
-                            sprintf(usrn, "re %d", errcd);
-                            Write(sockfd, usrn, strlen(usrn));
-                        }
-                        else if(pKey != room[rID].passkey) {
-                            if(pKey == 10000) 
-                                errcd = 2; // 2 Private
-                            else {
-                                errcd = 3; // 3 WrongPIN
-                                //TODO: close conn if >=3 times
-                            }
-                            sprintf(usrn, "re %d", errcd);
-                            Write(sockfd, usrn, strlen(usrn));
-                        }
-                        else {
-                            //client joins room
-                            JoinRoom(&room[rID], usrn, i);
-                            char tmp[MAXLINE];
-                            GetOneRoomInfo(&room[rID], rID, tmp);
-                            SendAll(&room[rID], tmp);
-                            in_room[i] = rID;
-                            //TODO
-                        }
-                    }
+                    else errcd = 4; // 4 Playing
+                    sprintf(usrn, "re %d", errcd);
+                    Write(sockfd, usrn, strlen(usrn));
+                }
+                else if(pKey != room[rID].passkey) {
+                    if(pKey == 10000) 
+                        errcd = 2; // 2 Private
                     else {
-                        int rID = in_room[i];
-                        switch (room[rID].stat) {
-                        case 0:
-                            //possibilities: 
-                            //lock/unlock
-                            if(buf[0] == '3') 
-                                Lock(&room[rID], i);
-                            else if(buf[0] == '2') 
-                                Unlock(&room[rID], i);
-                            //choose color
-                            else if(buf[0] == '7') 
-                                ChooseColor(&room[rID], i, buf);
-                            //make private/public
-                            else if(buf[0] == '5') {
-                                int k = 0;
-                                for(int j=0; j<3; j++) 
-                                    if(room[j].passkey != 10000) k++;
-                                MakePrivate(&room[rID], i, buf, k);
-                            }
-                            break;
-                        case 1:
-                            //play_card
-                            //TODO
-                            break;
-                        case 2:
-                            //bid
-                            //TODO
-                            break;
-                        case 3:
-                            //in room, status 3
-                            //continue game
-                            //TODO
-                            break;
-                        case 4:
-                            //in room, status 4
-                            //TODO
-                            break;
-                        default:
-                            err_quit("Unknown room status %d\n", room[rID].stat);
-                        }
+                        errcd = 3; // 3 WrongPIN
+                        //TODO: close conn if >=3 times
                     }
+                    sprintf(usrn, "re %d", errcd);
+                    Write(sockfd, usrn, strlen(usrn));
+                }
+                else {
+                    //client joins room
+                    JoinRoom(&room[rID], usrn, i);
+                    char tmp[MAXLINE];
+                    GetOneRoomInfo(&room[rID], rID, tmp);
+                    SendAll(&room[rID], tmp, 1);
+                    in_room[i] = rID;
+                    //TODO
                 }
                 if(--nready <= 0) break;
+                continue;
             }
+            int rID = in_room[i];
+            switch (room[rID].stat) {
+            case 0:
+                //possibilities: 
+                //lock/unlock
+                if(buf[0] == '3') 
+                    Lock(&room[rID], i);
+                else if(buf[0] == '2') 
+                    Unlock(&room[rID], i);
+                //choose color
+                else if(buf[0] == '7') 
+                    ChooseColor(&room[rID], i, buf);
+                //make private/public
+                else if(buf[0] == '5') {
+                    int k = 0;
+                    for(int j=0; j<3; j++) 
+                        if(room[j].passkey != 10000) k++;
+                    MakePrivate(&room[rID], i, buf, k);
+                }
+                break;
+            case 1:
+                //play_card
+                //TODO
+                break;
+            case 2:
+                //bid
+                //TODO
+                break;
+            case 3:
+                //in room, status 3
+                //continue game
+                //TODO
+                break;
+            case 4:
+                //in room, status 4
+                //TODO
+                break;
+            default:
+                err_quit("Unknown room status %d\n", room[rID].stat);
+            }
+            if(--nready <= 0) break;
         }
     }
 }
