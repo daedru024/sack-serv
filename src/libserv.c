@@ -75,12 +75,66 @@ void MakePlay(Rooms* tar, int pID) {
     //TODO
 }
 
-void RecvBid(Rooms* tar, int pID, char* msg) {
+void RecvBid(Rooms* tar, char* msg) {
     //TODO
+    //TODO auto player
+    //17 {PlayerID} {amount} {rem_money} {code} 
+    if(msg[0] != '1' || msg[1] != '7') return;
+    int pID, pri, rem, cd;
+    char buf[MAXLINE];
+    sscanf(msg, "17 %d %d %d", &pID, &pri, &rem);
+    //b {PlayerID} {amount}
+    if(pID != tar->nPlayer || (pri <= tar->lstbid && pri != 0)) cd = 0;
+    else if(rem != tar->plyData[pID].rem_money) cd = -1;
+    else if(pri == 0) {
+        //add rem_money
+        tar->plyData[pID].LastBid = -1;
+        cd = 1;
+    }
+    else {
+        tar->lstbid = pri;
+        tar->plyData[pID].LastBid = pri;
+        tar->wonstk[tar->rnd-1] = pID;
+        cd = 1;
+    }
+    sprintf(buf, "b %d %d %d", pID, pri, cd);
+    SendAll(tar, buf, 0);
+    tar->nPlayer = (tar->nPlayer+1) % tar->num_players;
+    while(tar->nPlayer != pID) {
+        if(tar->plyData[tar->nPlayer].LastBid != -1) break;
+        tar->nPlayer = (tar->nPlayer+1) & tar->num_players;
+    }
+    if(tar->nPlayer == pID) {
+        //TODO
+        //end bid
+        //change rem_money
+        tar->rnd++;
+        tar->sPlayer = (tar->sPlayer+1) % tar->num_players;
+        tar->nPlayer = tar->sPlayer;
+    }
+    return;
 }
 
-void RecvPlay(Rooms* tar, int pID, char* msg) {
-    //TODO
+void RecvPlay(Rooms* tar, char* msg) {
+    //13 {PlayerID} {cardID} {MaskUc}
+    int pID, cID, mskUc;
+    if(msg[0] != '1' || msg[1] != '3') return;
+    sscanf(msg, "13 %d %d %d", &pID, &cID, &mskUc);
+    int cd;
+    char buf[MAXLINE];
+    if(pID != tar->nPlayer) cd = 0;
+    else if(mskUc != tar->plyData[pID].MASK_Uc || bitis1(mskUc, cID)) 
+        cd = -1;
+    else {
+        bitw1(&(tar->plyData[pID].MASK_Uc), cID);
+        cd = 1;
+        tar->stks[tar->rnd-1][pID] = cID;
+    }
+    //c {PlayerID} {code}
+    sprintf(buf, "c %d %d", pID, cd);
+    SendAll(tar, buf, 0);
+    tar->nPlayer = (tar->nPlayer+1) % tar->num_players;
+    if(tar->nPlayer == tar->sPlayer) tar->stat = 2;
 }
 
 void StartGame(Rooms* Rm) {

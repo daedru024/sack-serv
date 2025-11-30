@@ -27,7 +27,6 @@ void ChooseColor(Rooms* Rm, int idx, char* msg) {
     for(int i=0; i<Rm->num_players; i++) 
         if(Rm->plyData[i].col == -1) return;
     StartGame(Rm);
-    return;
 }
 
 void GetOneRoomInfo(Rooms* tar, int rID, char* ret) {
@@ -66,11 +65,14 @@ void init_RoomInfo(Rooms* tar) {
     memset(tar->rabbit, 2, 5*sizeof(int));
     memset(tar->wonstk, -1, 9*sizeof(int));
     tar->sPlayer = 0;
+    tar->nPlayer = 0;
+    tar->lstbid = 0;
     tar->auto_player = 0;
     for(int i=0; i<5; i++) {
         bzero(&(tar->plyData[i]), sizeof(Player));
         tar->plyData[i].col = -1;
         tar->plyData[i].rem_money = 15;
+        tar->plyData[i].LastBid = 0;
     }
     return;
 }

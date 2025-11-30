@@ -29,6 +29,7 @@ typedef struct {
     int i; //-1 if auto play
     int col; //-1 if not ready
     int rem_money;
+    int LastBid; //-1 if aborted
     int MASK_Uc;
     int MASK_St;
 } Player;
@@ -42,6 +43,8 @@ typedef struct {
     int rabbit[5];  //player x’s rabbit is rabbit[x], x=0-4
     int wonstk[9]; //-1 if nobody won
     int sPlayer; //who plays first
+    int nPlayer; //who plays now
+    int lstbid; //last bidding value
     bool auto_player;
     Player plyData[5];
 } Rooms;
@@ -94,8 +97,8 @@ void JoinRoom(Rooms*, char*, int);
 void Lock(Rooms*, int);
 void MakePlay(Rooms*, int);
 void MakePrivate(Rooms*, int, char*, int);
-void RecvBid(Rooms*, int, char*);
-void RecvPlay(Rooms*, int, char*);
+void RecvBid(Rooms*, char*);
+void RecvPlay(Rooms*, char*);
 void StartGame(Rooms*);
 void Unlock(Rooms*, int);
 //random rabbit

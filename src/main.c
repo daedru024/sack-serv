@@ -51,12 +51,15 @@ int main(int argc, char** argv) {
                 pop(q);
                 continue;
             }
-            if(difftime(curr_time, lst_conn[frontNode->i]) >= 60) {
+            if(difftime(curr_time, lst_conn[frontNode->i]) > 61) {
                 //timeout
                 int sockfd = frontNode->sockfd;
-                Close(sockfd);
                 clients[frontNode->i].fd = -1;
-                in_room[frontNode->i] = -1;
+                if(in_room[frontNode->i] != -1) {
+                    ExitCli(frontNode->i, &room[in_room[frontNode->i]], in_room[frontNode->i]);
+                    in_room[frontNode->i] = -1;
+                }
+                Close(sockfd);
                 pop(q);
                 continue;
             }
@@ -204,7 +207,7 @@ int main(int argc, char** argv) {
                 }
                 break;
             case 1:
-                //play_card
+                RecvPlay(&room[in_room[i]], buf);
                 //TODO
                 break;
             case 2:
