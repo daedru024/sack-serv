@@ -7,6 +7,12 @@ int in_room[FOPEN_MAX]; //hash map
 time_t lst_conn[FOPEN_MAX]; //last msg timestamp
 Queue* q;
 
+const int AbdMoney[3][5] = {{3,6,0,0,0},
+                            {2,4,6,0,0},
+                            {2,3,4,6,0}};
+
+const int Cards[10] = {-8,-5,0,3,5,8,11,15,-9,9};
+
 int main(int argc, char** argv) {
     int i, maxi, listenfd, connfd, sockfd;
     int nready;
@@ -15,6 +21,7 @@ int main(int argc, char** argv) {
     socklen_t clilen;
     struct sockaddr_in cliaddr, servaddr;
     Rooms* room = malloc(3*sizeof(Rooms));
+    srand(time(NULL));
     
     for(int k=0; k<3; k++) init_RoomInfo(&room[k]);
 
@@ -54,13 +61,9 @@ int main(int argc, char** argv) {
             if(difftime(curr_time, lst_conn[frontNode->i]) > 61) {
                 //timeout
                 int sockfd = frontNode->sockfd;
-                clients[frontNode->i].fd = -1;
-                if(in_room[frontNode->i] != -1) {
-                    ExitCli(frontNode->i, &room[in_room[frontNode->i]], in_room[frontNode->i]);
-                    in_room[frontNode->i] = -1;
-                }
-                Close(sockfd);
-                pop(q);
+                if(in_room[frontNode->i] == -1) ExitCli(frontNode->i, NULL, -1, -1);
+                else ExitCli(frontNode->i, &room[in_room[frontNode->i]], in_room[frontNode->i], -1);
+
                 continue;
             }
             break;
@@ -80,8 +83,9 @@ int main(int argc, char** argv) {
                         strcat(buf, tmp);
                         if(room[j].stat == 0) has_vacant_room = 1;
                     }
+                    strcat(buf, "\n");
                     Write(connfd, buf, strlen(buf));
-                    if(!has_vacant_room) Close(connfd);
+                    if(!has_vacant_room) Closefd(connfd);
                     else {
                         clients[i].fd = connfd;
                         lst_conn[i] = time(NULL);
@@ -91,7 +95,7 @@ int main(int argc, char** argv) {
                 }
             }
             if(i == FOPEN_MAX) {
-                Close(connfd);
+                Closefd(connfd);
                 printf("Too many clients\n");
                 continue;
             }
@@ -106,13 +110,8 @@ int main(int argc, char** argv) {
             if(!(clients[i].revents & (POLLRDNORM | POLLERR))) continue;
             if((n = read(sockfd, buf, MAXLINE)) <= 0) {
                 if(n == 0 || errno == ECONNRESET) {
-                    Delete(q, i);
-                    clients[i].fd = -1;
-                    if(in_room[i] != -1) {
-                        ExitCli(i, &room[in_room[i]], in_room[i]);
-                        in_room[i] = -1;
-                    }
-                    Close(sockfd);
+                    if(in_room[i] == -1) ExitCli(i, NULL, -1, -1);
+                    else ExitCli(i, &room[in_room[i]], in_room[i], -1);
                 }
                 else err_sys("read error");
                 if(--nready <= 0) break;
@@ -134,13 +133,8 @@ int main(int argc, char** argv) {
 #ifdef DEBUG
                 printf("Invalid string received\n");
 #endif
-                Delete(q, i);
-                clients[i].fd = -1;
-                if(in_room[i] != -1) {
-                    ExitCli(i, &room[in_room[i]], in_room[i]);
-                    in_room[i] = -1;
-                }
-                Close(sockfd);
+                if(in_room[i] == -1) ExitCli(i, NULL, -1, -1);
+                else ExitCli(i, &room[in_room[i]], in_room[i], -1);
                 if(--nready <= 0) break;
                 continue;
             }
@@ -150,18 +144,14 @@ int main(int argc, char** argv) {
                 int dm, rID, pKey;
                 sscanf(buf, "%d %d %s %d", &dm, &rID, usrn, &pKey);
                 int errcd = -1;
-                if(rID > 2 || rID < 0) {
-                    Delete(q, i);
-                    clients[i].fd = -1;
-                    Close(sockfd);
-                }
+                if(rID > 2 || rID < 0) ExitCli(i, NULL, -1, -1);
                 else if(room[rID].stat != 0) {
                     if(room[rID].stat == 4) {
                         if(room[rID].num_players<5) errcd = 1; // 1 Locked
                         else errcd = 0; // 0 Full
                     }
                     else errcd = 4; // 4 Playing
-                    sprintf(usrn, "re %d", errcd);
+                    sprintf(usrn, "re %d\n", errcd);
                     Write(sockfd, usrn, strlen(usrn));
                 }
                 else if(pKey != room[rID].passkey) {
@@ -171,7 +161,7 @@ int main(int argc, char** argv) {
                         errcd = 3; // 3 WrongPIN
                         //TODO: close conn if >=3 times
                     }
-                    sprintf(usrn, "re %d", errcd);
+                    sprintf(usrn, "re %d\n", errcd);
                     Write(sockfd, usrn, strlen(usrn));
                 }
                 else {
@@ -207,12 +197,17 @@ int main(int argc, char** argv) {
                 }
                 break;
             case 1:
-                RecvPlay(&room[in_room[i]], buf);
-                //TODO
+                if(room[in_room[i]].rnd == 0)
+                    Rabbit(&room[in_room[i]], i, buf);
+                else {
+                    RecvPlay(&room[in_room[i]], buf);
+                    if(room[in_room[i]].stat == 2) MakeBid(&room[in_room[i]]);
+                }
                 break;
             case 2:
-                //bid
-                //TODO
+                RecvBid(&room[in_room[i]], buf);
+                if(room[in_room[i]].stat == 2) MakeBid(&room[in_room[i]]);
+                else if(room[in_room[i]].stat == 3) GetScore(&room[in_room[i]]);
                 break;
             case 3:
                 //in room, status 3

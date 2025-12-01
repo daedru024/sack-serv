@@ -18,10 +18,10 @@ Group 5
 
 | Message | Format | Details |
 | -------- | -------- | -------- |
-| Start game | `GAME_START` | - |
-| Played card | `c {PlayerID} {code}` | `code` `1` if played `-1` if error |
+| Start game | `GAMESTART` | - |
+| Played card | `c {PlayerID} {code}` | `code` `1` if played<br>`0` if not your turn<br>`-1` if error |
 | Notify bid | `BID {NextPlayerID}` | - |
-| PlayerID bid | `b {PlayerID} {amount}` | `amount` `-1` if chk failed |
+| PlayerID bid | `b {PlayerID} {amount} {code}` | `code` `0` if error<br>`-1` if chk failed |
 | End bid | `be {PlayerID} {amount}` | `PlayerID` wins with price `amount` <br> `PlayerID` -1 if nobody won |
 | Show scores | `ws {stk[:][:] won[:]} {score[:]}` | For example<br><pre>`ws 4 7 -3 2 ... 2 30 12 75`<br>`   ^stk   ^ won ^ ^score`</pre>If `stk[i][j]` was rabbit then `stk[i][j] = -rabbit[k]` |
 | Room info (available) | `ra {RoomID} {n_Players} {username[:] color[:]} {code}` | `code` `1` if need PIN, `0` otherwise<br>`color[i]` `-1` if player `i` not ready |
@@ -42,3 +42,4 @@ Group 5
 | Join room | `11 {RoomID} {username} {PIN}` | `PIN` `10000` if room is public |
 | Play card | `13 {PlayerID} {cardID} {MaskUc}` | - |
 | Bid | `17 {PlayerID} {amount} {rem_money}` | - |
+| Rabbit | `19 {rabbit}` | - |

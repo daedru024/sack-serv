@@ -56,24 +56,31 @@ void GetRoomInfo(Rooms* tar, int rID, char* ret) {
     return;
 }
 
+void init_PlayerInfo(Rooms* tar, int i) {
+    bzero(&(tar->plyData[i]), sizeof(Player));
+    tar->plyData[i].col = -1;
+    tar->plyData[i].rem_money = 15;
+    tar->plyData[i].LastBid = 0;
+    tar->plyData[i].score = 0;
+}
+
 void init_RoomInfo(Rooms* tar) {
     tar->stat = 0;
     tar->passkey = 10000;
     tar->num_players = 0;
     tar->rnd = 0;
-    memset(tar->stks, 0, 45*sizeof(int));
-    memset(tar->rabbit, 2, 5*sizeof(int));
+    memset(tar->stks, -1, 45*sizeof(int));
+    memset(tar->values, 0, 9*sizeof(int));
+    memset(tar->rabbit, -1, 5*sizeof(int));
     memset(tar->wonstk, -1, 9*sizeof(int));
+    memset(tar->abdMoney, 0, 5*sizeof(int));
     tar->sPlayer = 0;
     tar->nPlayer = 0;
     tar->lstbid = 0;
+    tar->aban = 0;
     tar->auto_player = 0;
-    for(int i=0; i<5; i++) {
-        bzero(&(tar->plyData[i]), sizeof(Player));
-        tar->plyData[i].col = -1;
-        tar->plyData[i].rem_money = 15;
-        tar->plyData[i].LastBid = 0;
-    }
+    for(int i=0; i<5; i++) 
+        init_PlayerInfo(tar, i);
     return;
 }
 
@@ -106,7 +113,7 @@ void MakePrivate(Rooms* tar, int idx, char* Pwd, int k) {
     if(PIN == 10000 && tar->plyData[0].i == idx) 
         tar->passkey = 10000;
     else if(k >= 2 && tar->passkey == 10000) {
-        sprintf(Pwd, "re 6"); //6 too many private rooms
+        sprintf(Pwd, "re 6\n"); //6 too many private rooms
         Write(clients[idx].fd, Pwd, strlen(Pwd));
         return;
     }

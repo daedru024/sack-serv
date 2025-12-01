@@ -21,7 +21,24 @@ again:
     return n;
 }
 
-int Close(int sockfd) {
+int Close(int idx) {
+    int n;
+    if(idx < 0 || clients[idx].fd < 0) return 0;
+    Delete(q, idx);
+    in_room[idx] = -1;
+    if(close(clients[idx].fd) == -1) {
+        if(errno == EBADF) {
+            clients[idx].fd = -1;
+            return -1;
+        }
+        err_sys("close error");
+        return -1;
+    }
+    clients[idx].fd = -1;
+    return 0;
+}
+
+int Closefd(int sockfd) {
     int n;
     if(sockfd < 0) return 0;
     if(close(sockfd) == -1) {
@@ -49,17 +66,22 @@ int Poll(struct pollfd *fdarr, unsigned long nfds) {
     return n;
 }
 
-void SendAll(Rooms* tar, char* msg, bool pID) {
+void SendAll(Rooms* tar, char* msg, int c) {
+    //c: 1 print id, 2 from exitcli, 3 from exitcli and print id
     char tmp[MAXLINE];
     for(int i=0; i<tar->num_players; i++) {
         if(tar->plyData[i].i == -1) continue;
-        if(pID)
-            sprintf(tmp, "%s %d ", msg, i);
+        if(c == 1 || c == 3)
+            sprintf(tmp, "%s %d \n", msg, i);
         else
             sprintf(tmp, "%s", msg);
         if(Write(clients[tar->plyData[i].i].fd, tmp, strlen(tmp)) == -1) {
-            ExitCli(tar->plyData[i].i, tar, in_room[tar->plyData[i].i]);
-            Close(clients[tar->plyData[i].i].fd);
+            if(c != 2) {
+                ExitCli(tar->plyData[i].i, tar, in_room[tar->plyData[i].i], i);
+                if(c == 3) return;
+                continue;
+            }
+            Close(tar->plyData[i].i);
             tar->plyData[i].i = -1;
             continue;
         }

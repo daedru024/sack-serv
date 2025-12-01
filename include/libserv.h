@@ -32,6 +32,7 @@ typedef struct {
     int LastBid; //-1 if aborted
     int MASK_Uc;
     int MASK_St;
+    int score;
 } Player;
 
 typedef struct {
@@ -40,11 +41,14 @@ typedef struct {
     int num_players;
     int rnd; //0-9
     int stks[9][5]; //round i card j
+    int values[9]; 
     int rabbit[5];  //player x’s rabbit is rabbit[x], x=0-4
     int wonstk[9]; //-1 if nobody won
     int sPlayer; //who plays first
     int nPlayer; //who plays now
     int lstbid; //last bidding value
+    int aban; //number of players who abandoned bid
+    int abdMoney[5]; //amount of money player gets after abandoning bid
     bool auto_player;
     Player plyData[5];
 } Rooms;
@@ -78,30 +82,36 @@ void err_sys(const char*, ...);
 //elem func
 
 int Accept(int, struct sockaddr*, socklen_t*);
+// Deletes node, changes in_room and clients[i].fd
 int Close(int);
+int Closefd(int);
 void Listen(int, int);
 int Poll(struct pollfd*, unsigned long);
-void SendAll(Rooms*, char*, bool);
+void SendAll(Rooms*, char*, int);
 int Write(int, const void*, size_t);
 
 
 //game mechanism
 
+void AutoBid(Rooms*, int);
+void AutoPlay(Rooms*, int);
 void ChooseColor(Rooms*, int, char*);
-void ExitCli(int, Rooms*, int);
+void ExitCli(int, Rooms*, int, int);
 void GetOneRoomInfo(Rooms*, int, char*);
 void GetRoomInfo(Rooms*, int, char*);
+void GetScore(Rooms*);
+void init_PlayerInfo(Rooms*, int);
 void init_RoomInfo(Rooms*);
 bool isValidStr(char*, int);
 void JoinRoom(Rooms*, char*, int);
 void Lock(Rooms*, int);
-void MakePlay(Rooms*, int);
+void MakeBid(Rooms*);
 void MakePrivate(Rooms*, int, char*, int);
+void Rabbit(Rooms*, int, char*);
 void RecvBid(Rooms*, char*);
 void RecvPlay(Rooms*, char*);
 void StartGame(Rooms*);
 void Unlock(Rooms*, int);
-//random rabbit
 
 void bitw1(int*, int);
 bool bitis1(int, int);
