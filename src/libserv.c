@@ -287,20 +287,6 @@ void RecvPlay(Rooms* tar, char* msg) {
 
 void StartGame(Rooms* Rm) {
     char buf[MAXLINE];
-    for(int i=0; i<Rm->num_players; i++) {
-        int idx = Rm->plyData[i].i;
-        int n;
-        if(clients[idx].revents & (POLLRDNORM | POLLERR)) {
-            if((n = read(clients[idx].fd, buf, MAXLINE)) <= 0) {
-                if(n == 0 || errno == ECONNRESET) {
-                    ExitCli(idx, Rm, in_room[idx], i);
-                    Close(idx);
-                    return;
-                }
-                else err_sys("read error");
-            }
-        }
-    }
     sprintf(buf, "GAMESTART\n");
     SendAll(Rm, buf, 0);
     if(Rm->stat == 4) {
