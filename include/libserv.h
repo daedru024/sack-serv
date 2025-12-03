@@ -105,7 +105,6 @@ void init_RoomInfo(Rooms*);
 bool isValidStr(char*, int);
 void JoinRoom(Rooms*, char*, int);
 void Lock(Rooms*, int);
-void MakeBid(Rooms*);
 void MakePrivate(Rooms*, int, char*, int);
 void Rabbit(Rooms*, int, char*);
 void RecvBid(Rooms*, char*);

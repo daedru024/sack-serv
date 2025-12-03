@@ -183,8 +183,6 @@ int main(int argc, char** argv) {
                 //lock/unlock
                 if(buf[0] == '3') 
                     Lock(&room[rID], i);
-                else if(buf[0] == '2') 
-                    Unlock(&room[rID], i);
                 //choose color
                 else if(buf[0] == '7') 
                     ChooseColor(&room[rID], i, buf);
@@ -197,17 +195,12 @@ int main(int argc, char** argv) {
                 }
                 break;
             case 1:
-                if(room[in_room[i]].rnd == 0)
-                    Rabbit(&room[in_room[i]], i, buf);
-                else {
-                    RecvPlay(&room[in_room[i]], buf);
-                    if(room[in_room[i]].stat == 2) MakeBid(&room[in_room[i]]);
-                }
+                if(room[in_room[i]].rnd == 0) Rabbit(&room[in_room[i]], i, buf);
+                else RecvPlay(&room[in_room[i]], buf);
                 break;
             case 2:
                 RecvBid(&room[in_room[i]], buf);
-                if(room[in_room[i]].stat == 2) MakeBid(&room[in_room[i]]);
-                else if(room[in_room[i]].stat == 3) GetScore(&room[in_room[i]]);
+                if(room[in_room[i]].stat == 3) GetScore(&room[in_room[i]]);
                 break;
             case 3:
                 //in room, status 3
@@ -215,8 +208,8 @@ int main(int argc, char** argv) {
                 //TODO
                 break;
             case 4:
-                //in room, status 4
-                //TODO
+                if(buf[0] == '2') 
+                    Unlock(&room[rID], i);
                 break;
             default:
                 err_quit("Unknown room status %d\n", room[rID].stat);

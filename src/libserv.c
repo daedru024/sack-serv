@@ -111,19 +111,6 @@ bool isValidStr(char* tar, int n) {
     return 1;
 }
 
-void MakeBid(Rooms* tar) {
-    //BID {NextPlayerID}
-    char buf[MAXLINE];
-    if(tar->auto_player && clients[tar->plyData[tar->nPlayer].i].fd == -1) {
-        AutoBid(tar, tar->nPlayer);
-        return;
-    }
-    int i = tar->nPlayer;
-    sprintf(buf, "BID %d\n", i);
-    if(Write(clients[tar->plyData[i].i].fd, buf, strlen(buf)) == -1) 
-        ExitCli(tar->plyData[i].i, tar, in_room[tar->plyData[i].i], i);
-}
-
 void Rabbit(Rooms* tar, int i, char* msg) {
     //client chooses rabbit
     //19 {rabbit}
@@ -170,10 +157,14 @@ void RecvBid(Rooms* tar, char* msg) {
         tar->wonstk[tar->rnd-1] = pID;
         cd = 1;
     }
-    sprintf(buf, "b %d %d %d\n", pID, pri, cd);
+    tar->nPlayer = (tar->nPlayer+1) % tar->num_players;
+    while(tar->nPlayer != pID) {
+        if(tar->plyData[tar->nPlayer].LastBid != -1) break;
+        tar->nPlayer = (tar->nPlayer+1) % tar->num_players;
+    }
+    sprintf(buf, "b %d %d %d %d\n", pID, pri, cd, tar->nPlayer);
     SendAll(tar, buf, 0);
     if(tar->stat == 0) return;
-    tar->nPlayer = (tar->nPlayer+1) % tar->num_players;
     if(tar->aban >= tar->num_players-1) {
         if(tar->plyData[tar->nPlayer].LastBid == 0) return;
         //end bid
@@ -185,14 +176,14 @@ void RecvBid(Rooms* tar, char* msg) {
             }
             tar->plyData[i].LastBid = 0;
         }
-        //be {PlayerID} {amount}
-        sprintf(buf, "be %d %d\n", pri, tar->lstbid);
+        //be {PlayerID} {amount} {sPlayer}
+        tar->sPlayer = (tar->sPlayer+1) % tar->num_players;
+        sprintf(buf, "be %d %d %d\n", pri, tar->lstbid, tar->sPlayer);
         SendAll(tar, buf, 0);
         if(tar->stat == 0) return;
         if(pri >= 0) 
             tar->plyData[pri].score += tar->values[tar->rnd-1];
         tar->lstbid = 0;
-        tar->sPlayer = (tar->sPlayer+1) % tar->num_players;
         tar->nPlayer = tar->sPlayer;
         tar->aban = 0;
         if(++tar->rnd == 10) {
@@ -202,9 +193,9 @@ void RecvBid(Rooms* tar, char* msg) {
         tar->stat = 1;
         return;
     }
-    while(tar->nPlayer != pID) {
-        if(tar->plyData[tar->nPlayer].LastBid != -1) break;
-        tar->nPlayer = (tar->nPlayer+1) % tar->num_players;
+    if(tar->auto_player && clients[tar->plyData[tar->nPlayer].i].fd == -1) {
+        AutoBid(tar, tar->nPlayer);
+        return;
     }
 }
 
