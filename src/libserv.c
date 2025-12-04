@@ -13,6 +13,7 @@ extern const int Cards[10];
 
 void AutoBid(Rooms* tar, int pID) {
     char buf[MAXLINE];
+    if(tar->plyData[pID].LastBid == -1) return;
     sprintf(buf, "17 %d 0 %d", pID, tar->plyData[pID].rem_money);
 #ifdef DEBUG
     printf("AutoBid\n");
@@ -21,7 +22,7 @@ void AutoBid(Rooms* tar, int pID) {
 }
 
 void AutoPlay(Rooms* tar, int pID) {
-    if(tar->stks[tar->rnd-1][pID] != -1) return;
+    if(tar->stks[tar->rnd-1][pID] != -1 || tar->nPlayer != pID) return;
     char buf[MAXLINE];
     int r = rand() % (10-tar->rnd);
     for(int i=0; i<10; i++) {
@@ -75,7 +76,7 @@ void ExitCli(int idx, Rooms* Rm, int rID, int pID) {
         int n = 0;
         SendAll(Rm, tmp, 2);
         for(int i=0; i<Rm->num_players; i++) if(Rm->plyData[i].i == -1) n++;
-        if(n > 1) {
+        if(n > 1 || Rm->rnd == 0) {
             for(int i=0; i<Rm->num_players; i++) 
                 Close(Rm->plyData[i].i);
             init_RoomInfo(Rm);
@@ -94,7 +95,25 @@ void ExitCli(int idx, Rooms* Rm, int rID, int pID) {
 }
 
 void GetScore(Rooms* tar) {
-    //TODO
+    char buf[MAXLINE];
+    char tmp[100];
+    sprintf(buf, "ws ");
+    int n = 0;
+    for(int k=0; k<9; k++) {
+        sprintf(tmp, "%d ", tar->stks[k][n]);
+        for(int i=1; i<tar->num_players; i++) {
+            int j = tar->stks[k][(n+i)%tar->num_players];
+            if(j == 2) j = -tar->rabbit[(n+i)%tar->num_players];
+            sprintf(tmp, "%s%d ", tmp, j);
+        }
+        strcat(buf, tmp);
+        n = (n+1) % tar->num_players;
+    }
+    sprintf(tmp, "%d ", tar->plyData[0].score);
+    for(int k=0; k<tar->num_players; k++) 
+        sprintf(tmp, "%s%d ", tmp, tar->plyData[k].score);
+    strcat(buf, tmp);
+    SendAll(tar, buf, 0);
 }
 
 bool isValidStr(char* tar, int n) {
@@ -130,11 +149,11 @@ void Rabbit(Rooms* tar, int i, char* msg) {
     tar->rabbit[k] = c;
     char tmp[10];
     sprintf(tmp, "ri %d\n", c);
-    if(Write(clients[tar->plyData[k].i].fd, tmp, strlen(tmp)) == -1) 
+    if(Write(clients[tar->plyData[k].i].fd, tmp, strlen(tmp)) == -1) {
         ExitCli(tar->plyData[i].i, tar, in_room[tar->plyData[i].i], i);
-    for(int j=0; j<tar->num_players; j++) 
-        if(tar->rabbit[j] == -1) return;
-    tar->rnd = 1;
+        return;
+    }
+    if(k == 0) tar->rnd = 1;
 }
 
 void RecvBid(Rooms* tar, char* msg) {
@@ -165,8 +184,7 @@ void RecvBid(Rooms* tar, char* msg) {
     sprintf(buf, "b %d %d %d %d\n", pID, pri, nply, cd);
     SendAll(tar, buf, 0);
     if(tar->stat == 0) return;
-    if(tar->aban >= tar->num_players-1) {
-        if(tar->plyData[tar->nPlayer].LastBid == 0) return;
+    if(tar->aban >= tar->num_players-1 && tar->plyData[tar->nPlayer].LastBid != 0) {
         //end bid
         pri = -1;
         for(int i=0; i<tar->num_players; i++) {
@@ -178,7 +196,8 @@ void RecvBid(Rooms* tar, char* msg) {
         }
         //be {PlayerID} {amount} {sPlayer}
         tar->sPlayer = (tar->sPlayer+1) % tar->num_players;
-        sprintf(buf, "be %d %d %d\n", pri, tar->lstbid, tar->sPlayer);
+        cd = tar->stks[tar->rnd-1][(tar->sPlayer+tar->num_players-1)%tar->num_players];
+        sprintf(buf, "be %d %d %d %d\n", pri, tar->lstbid, tar->sPlayer, cd);
         SendAll(tar, buf, 0);
         if(tar->stat == 0) return;
         if(pri >= 0) 
@@ -193,10 +212,8 @@ void RecvBid(Rooms* tar, char* msg) {
         tar->stat = 1;
         return;
     }
-    if(tar->auto_player && clients[tar->plyData[tar->nPlayer].i].fd == -1) {
+    if(tar->auto_player && tar->plyData[tar->nPlayer].i == -1) 
         AutoBid(tar, tar->nPlayer);
-        return;
-    }
 }
 
 void RecvPlay(Rooms* tar, char* msg) {
