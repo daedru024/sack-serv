@@ -140,29 +140,29 @@ void Rabbit(Rooms* tar, int i, char* msg) {
 void RecvBid(Rooms* tar, char* msg) {
     //17 {PlayerID} {amount} {rem_money} 
     if(msg[0] != '1' || msg[1] != '7') return;
-    int pID, pri, rem, cd;
+    int pID, pri, rem, cd = -1, nply = 0;
     char buf[MAXLINE];
     sscanf(msg, "17 %d %d %d", &pID, &pri, &rem);
-    //b {PlayerID} {amount} {code}
-    if(pID != tar->nPlayer || (pri <= tar->lstbid && pri != 0)) cd = 0;
-    else if(rem != tar->plyData[pID].rem_money) cd = -1;
+    //b {PlayerID} {amount} {nPlayer} {card}
+    if(pID != tar->nPlayer || (pri <= tar->lstbid && pri != 0)) nply = -1;
+    else if(rem != tar->plyData[pID].rem_money) nply = -1;
     else if(pri == 0) {
         tar->plyData[pID].rem_money += tar->abdMoney[tar->aban++];
         tar->plyData[pID].LastBid = -1;
-        cd = 1;
+        cd = tar->stks[tar->rnd-1][(tar->sPlayer+tar->aban)%tar->num_players];
     }
     else {
         tar->lstbid = pri;
         tar->plyData[pID].LastBid = pri;
         tar->wonstk[tar->rnd-1] = pID;
-        cd = 1;
     }
     tar->nPlayer = (tar->nPlayer+1) % tar->num_players;
     while(tar->nPlayer != pID) {
         if(tar->plyData[tar->nPlayer].LastBid != -1) break;
         tar->nPlayer = (tar->nPlayer+1) % tar->num_players;
     }
-    sprintf(buf, "b %d %d %d %d\n", pID, pri, cd, tar->nPlayer);
+    nply = (nply == 0) ? tar->nPlayer : nply;
+    sprintf(buf, "b %d %d %d %d\n", pID, pri, nply, cd);
     SendAll(tar, buf, 0);
     if(tar->stat == 0) return;
     if(tar->aban >= tar->num_players-1) {
