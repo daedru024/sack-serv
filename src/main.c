@@ -128,7 +128,6 @@ int main(int argc, char** argv) {
 #endif
             lst_conn[i] = time(NULL);
             push(q, sockfd, in_room[i], i);
-            //TODO
             if(!isValidStr(buf, n)) {
 #ifdef DEBUG
                 printf("Invalid string received\n");
@@ -157,10 +156,8 @@ int main(int argc, char** argv) {
                 else if(pKey != room[rID].passkey) {
                     if(pKey == 10000) 
                         errcd = 2; // 2 Private
-                    else {
+                    else 
                         errcd = 3; // 3 WrongPIN
-                        //TODO: close conn if >=3 times
-                    }
                     sprintf(usrn, "re %d\n", errcd);
                     Write(sockfd, usrn, strlen(usrn));
                 }
@@ -205,7 +202,6 @@ int main(int argc, char** argv) {
             case 3:
                 //in room, status 3
                 //continue game
-                //TODO
                 break;
             case 4:
                 if(buf[0] == '2') 

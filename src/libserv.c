@@ -148,9 +148,19 @@ void Rabbit(Rooms* tar, int i, char* msg) {
     int k = (pID+1) % tar->num_players;
     tar->rabbit[k] = c;
     char tmp[10];
+    if(tar->auto_player && tar->num_players == 4 && tar->plyData[k].i == -1) {
+        //choose rabbit for host
+        sprintf(tmp, "ri %d\n", rand()%10);
+        if(Write(clients[tar->plyData[0].i].fd, tmp, strlen(tmp)) == -1) {
+            ExitCli(tar->plyData[0].i, tar, in_room[tar->plyData[0].i], 0);
+            return;
+        }
+        tar->rnd = 1;
+        return;
+    }
     sprintf(tmp, "ri %d\n", c);
     if(Write(clients[tar->plyData[k].i].fd, tmp, strlen(tmp)) == -1) {
-        ExitCli(tar->plyData[i].i, tar, in_room[tar->plyData[i].i], i);
+        ExitCli(tar->plyData[k].i, tar, in_room[tar->plyData[k].i], k);
         return;
     }
     if(k == 0) tar->rnd = 1;

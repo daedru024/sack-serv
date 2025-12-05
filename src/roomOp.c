@@ -99,6 +99,23 @@ void Lock(Rooms* tar, int i) {
     if(tar->stat == 4) printf("Locked room %d\n", in_room[i]);
     else printf("Status %d\n", tar->stat);
 #endif
+    if(tar->num_players == 3) {
+        //add auto player
+        tar->num_players++;
+        strcpy(tar->plyData[3].username, "BOT");
+        tar->plyData[3].i = -1;
+        tar->auto_player = 1;
+        for(int k=0; k<5; k++) {
+            tar->plyData[3].col = k;
+            for(int j=0; j<3; j++) {
+                if(tar->plyData[j].col == k) {
+                    tar->plyData[3].col = -1;
+                    break;
+                }
+            }
+            if(tar->plyData[3].col != -1) break;
+        }
+    }
     char tmp[MAXLINE];
     GetOneRoomInfo(tar, in_room[i], tmp);
     SendAll(tar, tmp, 1);
