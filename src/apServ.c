@@ -1,17 +1,16 @@
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <errno.h>
 
-#include <time.h>
-#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <limits.h>
 #include <stdarg.h>
 #include <stdbool.h>
+#include <signal.h>
 
 #define DEBUG
 #define	LISTENQ	1024
