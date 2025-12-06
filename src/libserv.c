@@ -23,8 +23,11 @@ void AutoBid(Rooms* tar, int pID) {
 
 void AutoPlay(Rooms* tar, int pID) {
     if(tar->stks[tar->rnd-1][pID] != -1 || tar->nPlayer != pID) return;
+#ifdef DEBUG
+    printf("AutoPlay %d\n", pID);
+#endif
     char buf[MAXLINE];
-    int r = rand() % (10-tar->rnd);
+    int r = rand() % (10-(tar->rnd));
     for(int i=0; i<10; i++) {
         if(bitis1(tar->plyData[pID].MASK_Uc, i)) continue;
         if(--r == 0) {
@@ -147,16 +150,21 @@ void Rabbit(Rooms* tar, int i, char* msg) {
     c = (c+r) % 10;
     int k = (pID+1) % tar->num_players;
     tar->rabbit[k] = c;
+    bitw1(&tar->plyData[k].MASK_Uc, c);
     char tmp[10];
     if(tar->auto_player && tar->num_players == 4 && tar->plyData[k].i == -1) {
         //choose rabbit for host
-        sprintf(tmp, "ri %d\n", rand()%10);
+        tar->rabbit[0] = rand()%10;
+        bitw1(&tar->plyData[0].MASK_Uc, tar->rabbit[0]);
+        sprintf(tmp, "ri %d\n", tar->rabbit[0]);
         if(Write(clients[tar->plyData[0].i].fd, tmp, strlen(tmp)) == -1) {
             ExitCli(tar->plyData[0].i, tar, in_room[tar->plyData[0].i], 0);
             return;
         }
         SendAll(tar, "START_ROUND\n", 10);
         if(tar->stat == 0) return;
+        tar->nPlayer = 0;
+        tar->sPlayer = 0;
         tar->rnd = 1;
         return;
     }
@@ -168,6 +176,8 @@ void Rabbit(Rooms* tar, int i, char* msg) {
     if(k == 0) {
         SendAll(tar, "START_ROUND\n", 10);
         if(tar->stat == 0) return;
+        tar->nPlayer = 0;
+        tar->sPlayer = 0;
         tar->rnd = 1;
     }
 }
@@ -305,7 +315,7 @@ void RecvPlay(Rooms* tar, char* msg) {
             }
         }
     }
-    else if(tar->auto_player && clients[tar->plyData[tar->nPlayer].i].fd == -1) 
+    else if(tar->auto_player && tar->plyData[tar->nPlayer].i == -1) 
         AutoPlay(tar, tar->nPlayer);
 }
 

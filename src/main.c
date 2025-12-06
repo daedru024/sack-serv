@@ -63,7 +63,6 @@ int main(int argc, char** argv) {
                 int sockfd = frontNode->sockfd;
                 if(in_room[frontNode->i] == -1) ExitCli(frontNode->i, NULL, -1, -1);
                 else ExitCli(frontNode->i, &room[in_room[frontNode->i]], in_room[frontNode->i], -1);
-
                 continue;
             }
             break;
