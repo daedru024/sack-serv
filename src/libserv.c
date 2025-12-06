@@ -155,6 +155,8 @@ void Rabbit(Rooms* tar, int i, char* msg) {
             ExitCli(tar->plyData[0].i, tar, in_room[tar->plyData[0].i], 0);
             return;
         }
+        SendAll(tar, "START_ROUND\n", 10);
+        if(tar->stat == 0) return;
         tar->rnd = 1;
         return;
     }
@@ -163,7 +165,11 @@ void Rabbit(Rooms* tar, int i, char* msg) {
         ExitCli(tar->plyData[k].i, tar, in_room[tar->plyData[k].i], k);
         return;
     }
-    if(k == 0) tar->rnd = 1;
+    if(k == 0) {
+        SendAll(tar, "START_ROUND\n", 10);
+        if(tar->stat == 0) return;
+        tar->rnd = 1;
+    }
 }
 
 void RecvBid(Rooms* tar, char* msg) {

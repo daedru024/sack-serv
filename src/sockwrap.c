@@ -67,9 +67,10 @@ int Poll(struct pollfd *fdarr, unsigned long nfds) {
 }
 
 void SendAll(Rooms* tar, char* msg, int c) {
-    //c: 1 print id, 2 from exitcli, 3 from exitcli and print id
+    //c: 1 print id, 2 from exitcli, 3 from exitcli and print id, 10 if ignore player 0
     char tmp[MAXLINE];
-    for(int i=0; i<tar->num_players; i++) {
+    int k = (c == 10);
+    for(int i=k; i<tar->num_players; i++) {
         if(tar->plyData[i].i == -1) continue;
         if(c == 1 || c == 3)
             sprintf(tmp, "%s %d \n", msg, i);
