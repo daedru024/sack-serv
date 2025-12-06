@@ -6,6 +6,7 @@ struct pollfd clients[FOPEN_MAX];
 int in_room[FOPEN_MAX]; //hash map
 time_t lst_conn[FOPEN_MAX]; //last msg timestamp
 Queue* q;
+int maxi;
 
 const int AbdMoney[3][5] = {{3,6,0,0,0},
                             {2,4,6,0,0},
@@ -14,7 +15,7 @@ const int AbdMoney[3][5] = {{3,6,0,0,0},
 const int Cards[10] = {-8,-5,0,3,5,8,11,15,-9,9};
 
 int main(int argc, char** argv) {
-    int i, maxi, listenfd, connfd, sockfd;
+    int i, listenfd, connfd, sockfd;
     int nready;
     ssize_t n;
     char buf[MAXLINE];

@@ -50,6 +50,7 @@ typedef struct {
     int aban; //number of players who abandoned bid
     int abdMoney[5]; //amount of money player gets after abandoning bid
     bool auto_player;
+    char LastBroadcast[1000];
     Player plyData[5];
 } Rooms;
 
@@ -93,8 +94,9 @@ int Write(int, const void*, size_t);
 
 //game mechanism
 
-void AutoBid(Rooms*, int);
-void AutoPlay(Rooms*, int);
+// void AutoBid(Rooms*, int);
+// void AutoPlay(Rooms*, int);
+void ApConnect(Rooms*, int, int);
 void ChooseColor(Rooms*, int, char*);
 void ExitCli(int, Rooms*, int, int);
 void GetOneRoomInfo(Rooms*, int, char*);

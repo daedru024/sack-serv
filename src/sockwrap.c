@@ -74,8 +74,10 @@ void SendAll(Rooms* tar, char* msg, int c) {
         if(tar->plyData[i].i == -1) continue;
         if(c == 1 || c == 3)
             sprintf(tmp, "%s %d \n", msg, i);
-        else
-            sprintf(tmp, "%s", msg);
+        else {
+            strcpy(tmp, msg);
+            if(tmp[0] != 'a') strcpy(tar->LastBroadcast, tmp);
+        }
         if(Write(clients[tar->plyData[i].i].fd, tmp, strlen(tmp)) == -1) {
             if(c != 2) {
                 ExitCli(tar->plyData[i].i, tar, in_room[tar->plyData[i].i], i);

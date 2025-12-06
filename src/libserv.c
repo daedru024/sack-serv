@@ -8,34 +8,81 @@ extern time_t lst_conn[FOPEN_MAX]; //last msg timestamp
 extern Queue* q;
 extern const int AbdMoney[3][5];
 extern const int Cards[10];
+extern int maxi;
 
 /**** Game mechanism ****/
 
-void AutoBid(Rooms* tar, int pID) {
-    char buf[MAXLINE];
-    if(tar->plyData[pID].LastBid == -1) return;
-    sprintf(buf, "17 %d 0 %d", pID, tar->plyData[pID].rem_money);
-#ifdef DEBUG
-    printf("AutoBid\n");
-#endif
-    RecvBid(tar, buf);
-}
+// void AutoBid(Rooms* tar, int pID) {
+//     char buf[MAXLINE];
+//     if(tar->plyData[pID].LastBid == -1) return;
+//     sprintf(buf, "17 %d 0 %d", pID, tar->plyData[pID].rem_money);
+// #ifdef DEBUG
+//     printf("AutoBid\n");
+// #endif
+//     RecvBid(tar, buf);
+// }
 
-void AutoPlay(Rooms* tar, int pID) {
-    if(tar->stks[tar->rnd-1][pID] != -1 || tar->nPlayer != pID) return;
-#ifdef DEBUG
-    printf("AutoPlay %d\n", pID);
-#endif
-    char buf[MAXLINE];
-    int r = rand() % (10-(tar->rnd));
-    for(int i=0; i<10; i++) {
-        if(bitis1(tar->plyData[pID].MASK_Uc, i)) continue;
-        if(--r == 0) {
-            sprintf(buf, "13 %d %d %d", pID, i, tar->plyData[pID].MASK_Uc);
-            RecvPlay(tar, buf);
-            return;
+// void AutoPlay(Rooms* tar, int pID) {
+//     if(tar->stks[tar->rnd-1][pID] != -1 || tar->nPlayer != pID) return;
+// #ifdef DEBUG
+//     printf("AutoPlay %d\n", pID);
+// #endif
+//     char buf[MAXLINE];
+//     int r = rand() % (10-(tar->rnd));
+//     for(int i=0; i<10; i++) {
+//         if(bitis1(tar->plyData[pID].MASK_Uc, i)) continue;
+//         if(--r == 0) {
+//             sprintf(buf, "13 %d %d %d", pID, i, tar->plyData[pID].MASK_Uc);
+//             RecvPlay(tar, buf);
+//             return;
+//         }
+//     }
+// }
+
+void ApConnect(Rooms* tar, int pID, int rID) {
+    int sockfd;
+    struct sockaddr_in servaddr;
+    char servip[10] = "127.0.0.1";
+
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if(sockfd < 0) 
+        err_sys("socket error");
+
+    bzero(&servaddr, sizeof(servaddr));
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_port = htons(SERV_PORT+1);
+    
+    if(inet_pton(AF_INET, servip, &servaddr.sin_addr) <= 0) 
+        err_sys("inet_pton error");
+    if(connect(sockfd, (struct sockaddr*) &servaddr, sizeof(servaddr)) < 0) 
+        err_sys("connect error");
+    int idx = tar->plyData[pID].i;
+    if(idx != -1) {
+        clients[idx].fd = sockfd;
+    }
+    else {
+        for(int k=1; k<FOPEN_MAX; k++) {
+            if(clients[k].fd == -1) {
+                clients[k].fd = sockfd;
+                tar->plyData[pID].i = k;
+                idx = k;
+                if(k>maxi) maxi = k;
+                break;
+            }
         }
     }
+    if(idx != -1) {
+        clients[idx].events = POLLRDNORM;
+        in_room[idx] = rID;
+        lst_conn[idx] = time(NULL);
+        push(q, sockfd, rID, idx);
+    }
+    //send info
+    char buf[MAXLINE];
+    //{playerID} {num_players} {MASK_Uc} {rem_money} {sPlayer} {aban}
+    sprintf(buf, "%d %d %d %d %d %d\n", pID, tar->num_players, tar->plyData[pID].MASK_Uc, tar->plyData[pID].rem_money, tar->sPlayer, tar->aban);
+    Write(sockfd, buf, strlen(buf));
+    if(strlen(tar->LastBroadcast) > 0) Write(sockfd, tar->LastBroadcast, strlen(tar->LastBroadcast));
 }
 
 void ExitCli(int idx, Rooms* Rm, int rID, int pID) {
@@ -79,7 +126,7 @@ void ExitCli(int idx, Rooms* Rm, int rID, int pID) {
         int n = 0;
         SendAll(Rm, tmp, 2);
         for(int i=0; i<Rm->num_players; i++) if(Rm->plyData[i].i == -1) n++;
-        if(n > 1 || Rm->rnd == 0) {
+        if(Rm->rnd == 0 || n > 1 || Rm->auto_player) {
             for(int i=0; i<Rm->num_players; i++) 
                 Close(Rm->plyData[i].i);
             init_RoomInfo(Rm);
@@ -87,11 +134,13 @@ void ExitCli(int idx, Rooms* Rm, int rID, int pID) {
         }
         else {
             Rm->auto_player = 1;
-            if(Rm->nPlayer == pID) {
-                if(Rm->stat == 1) AutoPlay(Rm, pID);
-                else AutoBid(Rm, pID);
-            }
-            return;
+            // if(Rm->nPlayer == pID) {
+            //     if(Rm->stat == 1) AutoPlay(Rm, pID);
+            //     else AutoBid(Rm, pID);
+            // }
+            // return;
+            //TODO: set up connection with ap
+            ApConnect(Rm, pID, rID);
         }
     }
     if(Rm->stat == 3) Close(idx);
@@ -166,6 +215,8 @@ void Rabbit(Rooms* tar, int i, char* msg) {
         tar->nPlayer = 0;
         tar->sPlayer = 0;
         tar->rnd = 1;
+        //TODO: set up connection with ap
+        ApConnect(tar, 3, in_room[tar->plyData[0].i]);
         return;
     }
     sprintf(tmp, "ri %d\n", c);
@@ -220,7 +271,7 @@ void RecvBid(Rooms* tar, char* msg) {
             }
             tar->plyData[i].LastBid = 0;
         }
-        //be {PlayerID} {amount} {sPlayer}
+        //be {PlayerID} {amount} {sPlayer} {last_card}
         tar->sPlayer = (tar->sPlayer+1) % tar->num_players;
         cd = tar->stks[tar->rnd-1][(tar->sPlayer+tar->num_players-1)%tar->num_players];
         sprintf(buf, "be %d %d %d %d\n", pri, tar->lstbid, tar->sPlayer, cd);
@@ -238,8 +289,8 @@ void RecvBid(Rooms* tar, char* msg) {
         tar->stat = 1;
         return;
     }
-    if(tar->auto_player && tar->plyData[tar->nPlayer].i == -1) 
-        AutoBid(tar, tar->nPlayer);
+    // if(tar->auto_player && tar->plyData[tar->nPlayer].i == -1) 
+    //     AutoBid(tar, tar->nPlayer);
 }
 
 void RecvPlay(Rooms* tar, char* msg) {
@@ -315,8 +366,8 @@ void RecvPlay(Rooms* tar, char* msg) {
             }
         }
     }
-    else if(tar->auto_player && tar->plyData[tar->nPlayer].i == -1) 
-        AutoPlay(tar, tar->nPlayer);
+    // else if(tar->auto_player && tar->plyData[tar->nPlayer].i == -1) 
+    //     AutoPlay(tar, tar->nPlayer);
 }
 
 void StartGame(Rooms* Rm) {
