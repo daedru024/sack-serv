@@ -142,6 +142,7 @@ void AutoPlay(int sockfd) {
 #endif
         //c {PlayerID} {code}
         if(buf[0] == 'c') {
+            sleep(2);
             int pID, cd;
             sscanf(buf, "c %d %d", &pID, &cd);
             if(cd == -1 || cd == 0) continue;
@@ -159,6 +160,7 @@ void AutoPlay(int sockfd) {
         } 
         if(buf[0] == 'a') continue;
         if(buf[0] == 'b') {
+            sleep(2);
             int pID;
             if(buf[1] == 'e') {
                 //be {PlayerID} {amount} {sPlayer} {last_card}
