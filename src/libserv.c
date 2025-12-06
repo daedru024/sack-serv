@@ -10,35 +10,6 @@ extern const int AbdMoney[3][5];
 extern const int Cards[10];
 extern int maxi;
 
-/**** Game mechanism ****/
-
-// void AutoBid(Rooms* tar, int pID) {
-//     char buf[MAXLINE];
-//     if(tar->plyData[pID].LastBid == -1) return;
-//     sprintf(buf, "17 %d 0 %d", pID, tar->plyData[pID].rem_money);
-// #ifdef DEBUG
-//     printf("AutoBid\n");
-// #endif
-//     RecvBid(tar, buf);
-// }
-
-// void AutoPlay(Rooms* tar, int pID) {
-//     if(tar->stks[tar->rnd-1][pID] != -1 || tar->nPlayer != pID) return;
-// #ifdef DEBUG
-//     printf("AutoPlay %d\n", pID);
-// #endif
-//     char buf[MAXLINE];
-//     int r = rand() % (10-(tar->rnd));
-//     for(int i=0; i<10; i++) {
-//         if(bitis1(tar->plyData[pID].MASK_Uc, i)) continue;
-//         if(--r == 0) {
-//             sprintf(buf, "13 %d %d %d", pID, i, tar->plyData[pID].MASK_Uc);
-//             RecvPlay(tar, buf);
-//             return;
-//         }
-//     }
-// }
-
 void ApConnect(Rooms* tar, int pID, int rID) {
     int sockfd;
     struct sockaddr_in servaddr;
@@ -134,12 +105,6 @@ void ExitCli(int idx, Rooms* Rm, int rID, int pID) {
         }
         else {
             Rm->auto_player = 1;
-            // if(Rm->nPlayer == pID) {
-            //     if(Rm->stat == 1) AutoPlay(Rm, pID);
-            //     else AutoBid(Rm, pID);
-            // }
-            // return;
-            //TODO: set up connection with ap
             ApConnect(Rm, pID, rID);
         }
     }
@@ -215,7 +180,6 @@ void Rabbit(Rooms* tar, int i, char* msg) {
         tar->nPlayer = 0;
         tar->sPlayer = 0;
         tar->rnd = 1;
-        //TODO: set up connection with ap
         ApConnect(tar, 3, in_room[tar->plyData[0].i]);
         return;
     }
@@ -289,8 +253,6 @@ void RecvBid(Rooms* tar, char* msg) {
         tar->stat = 1;
         return;
     }
-    // if(tar->auto_player && tar->plyData[tar->nPlayer].i == -1) 
-    //     AutoBid(tar, tar->nPlayer);
 }
 
 void RecvPlay(Rooms* tar, char* msg) {
@@ -366,8 +328,6 @@ void RecvPlay(Rooms* tar, char* msg) {
             }
         }
     }
-    // else if(tar->auto_player && tar->plyData[tar->nPlayer].i == -1) 
-    //     AutoPlay(tar, tar->nPlayer);
 }
 
 void StartGame(Rooms* Rm) {

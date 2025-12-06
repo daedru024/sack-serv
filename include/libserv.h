@@ -94,8 +94,6 @@ int Write(int, const void*, size_t);
 
 //game mechanism
 
-// void AutoBid(Rooms*, int);
-// void AutoPlay(Rooms*, int);
 void ApConnect(Rooms*, int, int);
 void ChooseColor(Rooms*, int, char*);
 void ExitCli(int, Rooms*, int, int);
