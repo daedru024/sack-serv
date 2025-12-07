@@ -108,6 +108,7 @@ void PlayCard(int sockfd, int* MASK_Uc, int playerID) {
     for(int i=0; i<10; i++) {
         if(bitis1(*MASK_Uc, i)) continue;
         if(--r == 0) {
+            sleep(2);
             sprintf(buf, "13 %d %d %d", playerID, i, *MASK_Uc);
             bitw1(MASK_Uc, i);
             Write(sockfd, buf, strlen(buf));
@@ -142,13 +143,13 @@ void AutoPlay(int sockfd) {
 #endif
         //c {PlayerID} {code}
         if(buf[0] == 'c') {
-            sleep(2);
             int pID, cd;
             sscanf(buf, "c %d %d", &pID, &cd);
             if(cd == -1 || cd == 0) continue;
             else if(pID == lst_player) {
                 if(playerID != sPlayer) PlayCard(sockfd, &MASK_Uc, playerID);
                 else {
+                    sleep(3);
                     aban = 0;
                     //bid
                     sprintf(buf, "17 %d 0 %d", playerID, rem_money);
@@ -160,7 +161,6 @@ void AutoPlay(int sockfd) {
         } 
         if(buf[0] == 'a') continue;
         if(buf[0] == 'b') {
-            sleep(2);
             int pID;
             if(buf[1] == 'e') {
                 //be {PlayerID} {amount} {sPlayer} {last_card}
@@ -179,6 +179,7 @@ void AutoPlay(int sockfd) {
             if(nPlayer == playerID) {
                 //bid
                 //17 {PlayerID} 0 {rem_money} 
+                sleep(3);
                 sprintf(buf, "17 %d 0 %d", playerID, rem_money);
                 rem_money += refund[aban];
                 Write(sockfd, buf, strlen(buf));
