@@ -48,7 +48,7 @@ int Recv(int sockfd, char *recvline) {
     int sel;
     FD_ZERO(&rfds);
     FD_SET(sockfd, &rfds);
-    tv.tv_sec = 3;
+    tv.tv_sec = 1;
     tv.tv_usec = 0;
 
     sel = select(sockfd + 1, &rfds, NULL, NULL, &tv);
