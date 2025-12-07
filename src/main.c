@@ -62,6 +62,9 @@ int main(int argc, char** argv) {
             if(difftime(curr_time, lst_conn[frontNode->i]) > 61) {
                 //timeout
                 int sockfd = frontNode->sockfd;
+#ifdef DEBUG
+                printf("Timeout %d\n", i);
+#endif
                 if(in_room[frontNode->i] == -1) ExitCli(frontNode->i, NULL, -1, -1);
                 else ExitCli(frontNode->i, &room[in_room[frontNode->i]], in_room[frontNode->i], -1);
                 continue;
@@ -110,6 +113,10 @@ int main(int argc, char** argv) {
             if(!(clients[i].revents & (POLLRDNORM | POLLERR))) continue;
             if((n = read(sockfd, buf, MAXLINE)) <= 0) {
                 if(n == 0 || errno == ECONNRESET) {
+#ifdef DEBUG
+                    if(n == 0) printf("Connection closed\n");
+                    else printf("RST\n");
+#endif
                     if(in_room[i] == -1) ExitCli(i, NULL, -1, -1);
                     else ExitCli(i, &room[in_room[i]], in_room[i], -1);
                 }
@@ -118,6 +125,9 @@ int main(int argc, char** argv) {
                 continue;
             }
             if(buf[0] == ' ') {
+#ifdef DEBUG
+                printf("Heartbeat from %d\n", i);
+#endif
                 push(q, sockfd, in_room[i], i);
                 if(--nready <= 0) break;
                 continue;
@@ -142,6 +152,7 @@ int main(int argc, char** argv) {
                 char usrn[15];
                 int dm, rID, pKey;
                 sscanf(buf, "%d %d %s %d", &dm, &rID, usrn, &pKey);
+                if(dm != 11) continue;
                 int errcd = -1;
                 if(rID > 2 || rID < 0) ExitCli(i, NULL, -1, -1);
                 else if(room[rID].stat != 0) {
@@ -204,7 +215,11 @@ int main(int argc, char** argv) {
                 //continue game
                 break;
             case 4:
-                if(buf[0] == '2') 
+                if(buf[0] == '7') 
+                    ChooseColor(&room[rID], i, buf);
+                else if(buf[0] == '3') 
+                    Lock(&room[rID], i);
+                else if(buf[0] == '2') 
                     Unlock(&room[rID], i);
                 break;
             default:

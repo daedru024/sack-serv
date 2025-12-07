@@ -65,7 +65,7 @@ void ExitCli(int idx, Rooms* Rm, int rID, int pID) {
     if(Rm->stat == 0 || (Rm->stat == 4 && Rm->rnd == 0)) {
         // resend room info, unlock
         Rm->stat = 0;
-        if(--(Rm->num_players) == 0) {
+        if(--Rm->num_players == 0) {
             init_RoomInfo(Rm);
             Close(idx);
             return;
@@ -263,8 +263,7 @@ void RecvPlay(Rooms* tar, char* msg) {
     int cd;
     char buf[MAXLINE];
     if(pID != tar->nPlayer) cd = 0;
-    else if(mskUc != tar->plyData[pID].MASK_Uc || bitis1(mskUc, cID)) 
-        cd = -1;
+    else if(mskUc != tar->plyData[pID].MASK_Uc || bitis1(mskUc, cID)) cd = -1;
     else {
         bitw1(&(tar->plyData[pID].MASK_Uc), cID);
         cd = 1;
@@ -280,7 +279,7 @@ void RecvPlay(Rooms* tar, char* msg) {
     sprintf(buf, "c %d %d\n", pID, cd);
     SendAll(tar, buf, 0);
     if(tar->stat == 0) return;
-    tar->nPlayer = (tar->nPlayer+1) % tar->num_players;
+    if(cd == 1) tar->nPlayer = (tar->nPlayer+1) % tar->num_players;
 
     if(tar->nPlayer == tar->sPlayer) {
         tar->stat = 2;

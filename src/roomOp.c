@@ -17,16 +17,14 @@ void ChooseColor(Rooms* Rm, int idx, char* msg) {
             SendAll(Rm, buf, 1);
             return;
         }
-        else if(Rm->plyData[i].i == idx) 
-            k = i;
+        else if(Rm->plyData[i].i == idx) k = i;
     }
     Rm->plyData[k].col = col;
+#ifdef DEBUG
+    printf("Chose color %d for %d\n", col, k);
+#endif
     GetOneRoomInfo(Rm, in_room[idx], buf);
     SendAll(Rm, buf, 1);
-    if(Rm->stat != 4) return;
-    for(int i=0; i<Rm->num_players; i++) 
-        if(Rm->plyData[i].col == -1) return;
-    StartGame(Rm);
 }
 
 void GetOneRoomInfo(Rooms* tar, int rID, char* ret) {
@@ -62,6 +60,7 @@ void init_PlayerInfo(Rooms* tar, int i) {
     tar->plyData[i].rem_money = 15;
     tar->plyData[i].LastBid = 0;
     tar->plyData[i].score = 0;
+    tar->plyData[i].i = -1;
 }
 
 void init_RoomInfo(Rooms* tar) {
