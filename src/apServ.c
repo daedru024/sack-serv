@@ -128,6 +128,7 @@ void AutoPlay(int sockfd) {
     //msg format: {playerID} {num_players} {MASK_Uc} {rem_money} {sPlayer} {aban} {LastBroadcast}
     char buf[1000];
     char tmp[MAXLINE];
+    bool flg = 0;
     int n, playerID, num_players, MASK_Uc, rem_money, sPlayer, aban;
     n = Recv(sockfd, tmp);
     tmp[n] = 0;
@@ -141,7 +142,7 @@ void AutoPlay(int sockfd) {
     }
     char* pos = strstr(tmp, "\n");
     n = strlen(tmp)-(pos-tmp);
-    strncpy(buf, pos, n);
+    strncpy(buf, pos+1, n);
     do {
         if(n == -2) continue;
         buf[n] = 0;
@@ -164,8 +165,9 @@ void AutoPlay(int sockfd) {
                     Write(sockfd, buf, strlen(buf));
                 }
             }
+            flg = 1;
             continue;
-        } 
+        }
         if(buf[0] == 'a') continue;
         if(buf[0] == 'b') {
             int pID;
@@ -178,6 +180,7 @@ void AutoPlay(int sockfd) {
                     return;
                 }
                 if(sPlayer == playerID) PlayCard(sockfd, &MASK_Uc, playerID);
+                flg = 1;
                 continue;
             }
             //b {PlayerID} {amount} {nPlayer} {card}
@@ -187,6 +190,7 @@ void AutoPlay(int sockfd) {
             if(nPlayer == playerID && pID != playerID) {
                 //bid
                 //17 {PlayerID} 0 {rem_money} 
+                if(!flg) aban--;
                 sleep(3);
                 sprintf(tmp, "17 %d 0 %d", playerID, rem_money);
                 rem_money += refund[aban];
@@ -211,6 +215,7 @@ void AutoPlay(int sockfd) {
 #endif
                 if(sPlayer == playerID) PlayCard(sockfd, &MASK_Uc, playerID);
             }
+            flg = 1;
         }
     } while((n = Recv(sockfd, buf)) != 0);
     return;
