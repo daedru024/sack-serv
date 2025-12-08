@@ -64,7 +64,7 @@ int Recv(int sockfd, char *recvline) {
         else if (n == 0) printf("Connection closed\n");
         recvline[n] = 0;
 #ifdef DEBUG
-        printf("Recv: %s\n", recvline);
+        printf("Recv: %s", recvline);
 #endif
         return (int)n;
     }
@@ -105,13 +105,20 @@ bool bitis1(int tar, int k) {
 void PlayCard(int sockfd, int* MASK_Uc, int playerID) {
     char buf[MAXLINE];
     int r = rand() % (10-(__builtin_popcount(*MASK_Uc)));
+#ifdef DEBUG
+    printf("r=%d\n", r);
+#endif
     for(int i=0; i<10; i++) {
         if(bitis1(*MASK_Uc, i)) continue;
-        if(--r == 0) {
+        if(r-- == 0) {
+#ifdef DEBUG
+            printf("i=%d\n",i);
+#endif
             sleep(2);
             sprintf(buf, "13 %d %d %d", playerID, i, *MASK_Uc);
             bitw1(MASK_Uc, i);
             Write(sockfd, buf, strlen(buf));
+            return;
         }
     }
 }
@@ -150,10 +157,10 @@ void AutoPlay(int sockfd) {
                 if(playerID != sPlayer) PlayCard(sockfd, &MASK_Uc, playerID);
                 else {
                     sleep(3);
-                    aban = 0;
                     //bid
                     sprintf(buf, "17 %d 0 %d", playerID, rem_money);
                     rem_money += refund[aban];
+                    aban = 0;
                     Write(sockfd, buf, strlen(buf));
                 }
             }
@@ -165,6 +172,7 @@ void AutoPlay(int sockfd) {
             if(buf[1] == 'e') {
                 //be {PlayerID} {amount} {sPlayer} {last_card}
                 sscanf(buf, "be %d %d %d %d", &pID, &pID, &sPlayer, &pID);
+                aban = 0;
                 if(MASK_Uc == 1023) {
                     close(sockfd);
                     return;
@@ -176,13 +184,32 @@ void AutoPlay(int sockfd) {
             int amount, nPlayer, cd;
             sscanf(buf, "b %d %d %d %d", &pID, &amount, &nPlayer, &cd);
             if(pID != playerID && cd != -1) aban++;
-            if(nPlayer == playerID) {
+            if(nPlayer == playerID && pID != playerID) {
                 //bid
                 //17 {PlayerID} 0 {rem_money} 
                 sleep(3);
-                sprintf(buf, "17 %d 0 %d", playerID, rem_money);
+                sprintf(tmp, "17 %d 0 %d", playerID, rem_money);
                 rem_money += refund[aban];
-                Write(sockfd, buf, strlen(buf));
+                Write(sockfd, tmp, strlen(tmp));
+            }
+            char* ps = strstr(buf, "be");
+            if(ps != NULL) {
+                aban = 0;
+                strncpy(tmp, ps, n);
+#ifdef DEBUG
+                printf("msg: %s\n", tmp);
+#endif
+                sscanf(tmp, "be %d %d %d %d", &pID, &pID, &sPlayer, &pID);
+                if(MASK_Uc == 1023) {
+                    close(sockfd);
+                    return;
+                }
+#ifdef DEBUG
+                printf("Abandoned: %d\n", aban);
+                printf("PlayerID: %d\n", playerID);
+                printf("sPlayer: %d\n", sPlayer);
+#endif
+                if(sPlayer == playerID) PlayCard(sockfd, &MASK_Uc, playerID);
             }
         }
     } while((n = Recv(sockfd, buf)) != 0);

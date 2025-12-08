@@ -217,12 +217,14 @@ void RecvBid(Rooms* tar, char* msg) {
         tar->plyData[pID].LastBid = pri;
         tar->wonstk[tar->rnd-1] = pID;
     }
-    tar->nPlayer = (tar->nPlayer+1) % tar->num_players;
-    while(tar->nPlayer != pID) {
-        if(tar->plyData[tar->nPlayer].LastBid != -1) break;
+    if(nply == 0) {
         tar->nPlayer = (tar->nPlayer+1) % tar->num_players;
+        while(tar->nPlayer != pID) {
+            if(tar->plyData[tar->nPlayer].LastBid != -1) break;
+            tar->nPlayer = (tar->nPlayer+1) % tar->num_players;
+        }
+        nply = tar->nPlayer;
     }
-    nply = (nply == 0) ? tar->nPlayer : nply;
     sprintf(buf, "b %d %d %d %d\n", pID, pri, nply, cd);
     SendAll(tar, buf, 0);
     if(tar->stat == 0) return;
