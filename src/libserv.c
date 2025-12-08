@@ -207,9 +207,10 @@ void RecvBid(Rooms* tar, char* msg) {
     if(pID != tar->nPlayer || (pri <= tar->lstbid && pri != 0)) nply = -1;
     else if(rem != tar->plyData[pID].rem_money) nply = -1;
     else if(pri == 0) {
-        tar->plyData[pID].rem_money += tar->abdMoney[tar->aban++];
+        tar->plyData[pID].rem_money += tar->abdMoney[tar->aban];
         tar->plyData[pID].LastBid = -1;
         cd = tar->stks[tar->rnd-1][(tar->sPlayer+tar->aban)%tar->num_players];
+        tar->aban++;
     }
     else {
         tar->lstbid = pri;
