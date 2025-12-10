@@ -115,21 +115,16 @@ void GetScore(Rooms* tar) {
     char buf[MAXLINE];
     char tmp[100];
     sprintf(buf, "ws ");
-    int n = 0;
+    //ws {won[:] values[:]} {score[:]}
     for(int k=0; k<9; k++) {
-        sprintf(tmp, "%d ", tar->stks[k][n]);
-        for(int i=1; i<tar->num_players; i++) {
-            int j = tar->stks[k][(n+i)%tar->num_players];
-            if(j == 2) j = -tar->rabbit[(n+i)%tar->num_players];
-            sprintf(tmp, "%s%d ", tmp, j);
-        }
+        sprintf(tmp, "%d %d ", tar->wonstk[k], tar->values[k]);
         strcat(buf, tmp);
-        n = (n+1) % tar->num_players;
     }
-    sprintf(tmp, "%d ", tar->plyData[0].score);
-    for(int k=0; k<tar->num_players; k++) 
-        sprintf(tmp, "%s%d ", tmp, tar->plyData[k].score);
-    strcat(buf, tmp);
+    for(int k=0; k<tar->num_players; k++) {
+        tar->plyData[k].score += tar->plyData[k].rem_money;
+        sprintf(tmp, "%d ", tar->plyData[k].score);
+        strcat(buf, tmp);
+    }
     SendAll(tar, buf, 0);
 }
 
@@ -271,10 +266,8 @@ void RecvPlay(Rooms* tar, char* msg) {
         bitw1(&(tar->plyData[pID].MASK_Uc), cID);
         cd = 1;
         tar->stks[tar->rnd-1][pID] = cID;
-        if(cID >= 8 || (cID == 2 && tar->rabbit[pID] >= 8)) {
-            if(cID == 2) cID = tar->rabbit[pID];
-            if(tar->values[tar->rnd-1] >= 8 || tar->values[tar->rnd-1] == -1) 
-                tar->values[tar->rnd-1] = -1;
+        if(cID >= 8) {
+            if(tar->values[tar->rnd-1] >= 8 || tar->values[tar->rnd-1] == -1) tar->values[tar->rnd-1] = -1;
             else tar->values[tar->rnd-1] = cID;
         }
     }
@@ -292,7 +285,6 @@ void RecvPlay(Rooms* tar, char* msg) {
             tar->values[tar->rnd-1] = 0;
             for(int i=0; i<tar->num_players; i++) {
                 int j = tar->stks[tar->rnd-1][i];
-                if(j == 2) j = tar->rabbit[i];
                 if(j >= 8) continue;
                 else tar->values[tar->rnd-1] += Cards[j];
             }
@@ -303,7 +295,6 @@ void RecvPlay(Rooms* tar, char* msg) {
             int mx = 0;
             for(int i=0; i<tar->num_players; i++) {
                 int j = tar->stks[tar->rnd-1][i];
-                if(j == 2) j = tar->rabbit[i];
                 tar->values[tar->rnd-1] += Cards[j];
                 if(Cards[j] > mx) mx = Cards[j];
             }
@@ -315,7 +306,6 @@ void RecvPlay(Rooms* tar, char* msg) {
             int mn = 0;
             for(int i=0; i<tar->num_players; i++) {
                 int j = tar->stks[tar->rnd-1][i];
-                if(j == 2) j = tar->rabbit[i];
                 tar->values[tar->rnd-1] += Cards[j];
                 if(Cards[j] < mn) mn = Cards[j];
             }
@@ -325,7 +315,6 @@ void RecvPlay(Rooms* tar, char* msg) {
             tar->values[tar->rnd-1] = 0;
             for(int i=0; i<tar->num_players; i++) {
                 int j = tar->stks[tar->rnd-1][i];
-                if(j == 2) j = tar->rabbit[i];
                 tar->values[tar->rnd-1] += Cards[j];
             }
         }

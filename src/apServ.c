@@ -143,6 +143,7 @@ void AutoPlay(int sockfd) {
     char* pos = strstr(tmp, "\n");
     n = strlen(tmp)-(pos-tmp);
     strncpy(buf, pos+1, n);
+    srand(time(NULL));
     do {
         if(n == -2) continue;
         buf[n] = 0;

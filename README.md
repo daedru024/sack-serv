@@ -22,7 +22,7 @@ Group 5
 | Played card | `c {PlayerID} {code}` | `code` `1` if played<br>`0` if not your turn<br>`-1` if error |
 | PlayerID bid | `b {PlayerID} {amount} {NextPlayerID} {cardID}` | - |
 | End bid | `be {PlayerID} {amount} {sPlayer} {LastCard}` | `PlayerID` wins with price `amount` <br> `PlayerID` -1 if nobody won |
-| Show scores | `ws {stk[:][:] won[:]} {score[:]}` | For example<br><pre>`ws 4 7 -3 2 ... 2 30 12 75`<br>`   ^stk   ^ won ^ ^score`</pre>If `stk[i][j]` was rabbit then `stk[i][j] = -rabbit[k]` |
+| Show scores | `ws {won[:] values[:]} {score[:]}` | - |
 | Room info (available) | `ra {RoomID} {n_Players} {username[:] color[:]} {code}` | `code` `1` if need PIN, `0` otherwise<br>`color[i]` `-1` if player `i` not ready |
 | Room info (unavailable) | `ru {RoomID} {n_Players} {rnd}` | `rnd` current round, `0` if room locked |
 | Room info (in room) | `in {RoomID} {n_Players} {username[:] color[:]} {locked} {PIN} {playerID}` | - |
