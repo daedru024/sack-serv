@@ -108,7 +108,33 @@ void ExitCli(int idx, Rooms* Rm, int rID, int pID) {
             ApConnect(Rm, pID, rID);
         }
     }
-    if(Rm->stat == 3) Close(idx);
+    // if(Rm->stat == 3) Close(idx);
+    // added
+    if(Rm->stat == 3) {
+        for(int i=0; i<Rm->num_players; i++) {
+            if(Rm->plyData[i].i == idx) {
+                Rm->plyData[i].i = -1;
+                break;
+            }
+        }
+
+        Close(idx);
+
+        int remaining_players = 0;
+        for(int i=0; i<Rm->num_players; i++) {
+            if(Rm->plyData[i].i != -1) {
+                remaining_players++;
+            }
+        }
+
+        if(remaining_players == 0) {
+            init_RoomInfo(Rm);
+#ifdef DEBUG
+            printf("Room %d reset to empty.\n", rID);
+#endif
+        }
+    }
+    //
 }
 
 void GetScore(Rooms* tar) {
