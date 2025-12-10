@@ -234,8 +234,8 @@ void RecvBid(Rooms* tar, char* msg) {
             tar->plyData[i].LastBid = 0;
         }
         //be {PlayerID} {amount} {sPlayer} {last_card}
-        tar->sPlayer = (tar->sPlayer+1) % tar->num_players;
         cd = tar->stks[tar->rnd-1][(tar->sPlayer+tar->num_players-1)%tar->num_players];
+        tar->sPlayer = (tar->sPlayer+1) % tar->num_players;
         sprintf(buf, "be %d %d %d %d\n", pri, tar->lstbid, tar->sPlayer, cd);
         SendAll(tar, buf, 0);
         if(tar->stat == 0) return;
