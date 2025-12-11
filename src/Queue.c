@@ -1,7 +1,5 @@
 #include "libserv.h"
 
-#define DEBUG
-
 /**** Queue functions ****/
 
 void init_Queue(Queue* q) {

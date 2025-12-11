@@ -1,10 +1,7 @@
 #include "libserv.h"
 
-#define DEBUG
-
 extern struct pollfd clients[FOPEN_MAX];
 extern int in_room[FOPEN_MAX]; //hash map
-extern time_t lst_conn[FOPEN_MAX]; //last msg timestamp
 extern Queue* q;
 
 /**** Elem functions ****/
@@ -64,35 +61,6 @@ int Poll(struct pollfd *fdarr, unsigned long nfds) {
     if((n = poll(fdarr, nfds, 5000)) < 0) 
         err_sys("poll error");
     return n;
-}
-
-void SendAll(Rooms* tar, char* msg, int c) {
-    //c: 1 print id, 2 from exitcli, 3 from exitcli and print id, 10 if ignore player 0
-    char tmp[MAXLINE];
-    int k = (c == 10);
-    for(int i=k; i<tar->num_players; i++) {
-        if(tar->plyData[i].i == -1) continue;
-        if(c == 1 || c == 3)
-            sprintf(tmp, "%s %d \n", msg, i);
-        else {
-            strcpy(tmp, msg);
-            if(tmp[0] != 'a') strcpy(tar->LastBroadcast, tmp);
-        }
-        if(Write(clients[tar->plyData[i].i].fd, tmp, strlen(tmp)) == -1) {
-            if(c != 2) {
-                ExitCli(tar->plyData[i].i, tar, in_room[tar->plyData[i].i], i);
-                if(c == 3) return;
-                continue;
-            }
-            Close(tar->plyData[i].i);
-            tar->plyData[i].i = -1;
-            continue;
-        }
-        char tmp[3];
-        lst_conn[tar->plyData[i].i] = time(NULL);
-        push(q, clients[tar->plyData[i].i].fd, in_room[tar->plyData[i].i], tar->plyData[i].i);
-    }
-    return;
 }
 
 int Write(int sockfd, const void *vptr, size_t n) {
