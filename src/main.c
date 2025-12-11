@@ -127,7 +127,7 @@ int main(int argc, char** argv) {
                 printf("Heartbeat from %d\n", i);
 #endif
                 push(q, sockfd, in_room[i], i);
-                if(in_room[i] != -1 && room[in_room[i]].passkey != 10000) {
+                if(in_room[i] != -1 && room[in_room[i]].passkey != 10000 && (room[in_room[i]].stat == 0 || room[in_room[i]].stat == 4)) {
                     time_t currtime = time(NULL);
                     if(difftime(currtime, room[in_room[i]].madePriv) >= 600) 
                         CloseRoom(&room[in_room[i]]);
