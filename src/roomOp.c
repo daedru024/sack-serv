@@ -1,11 +1,10 @@
 #include "libserv.h"
 
-#define DEBUG
-
 /**** Room Operations ****/
 
 extern struct pollfd clients[FOPEN_MAX];
 extern int in_room[FOPEN_MAX]; //hash map
+extern const int AbdMoney[3][5];
 
 void ChooseColor(Rooms* Rm, int idx, char* msg) {
     int col, k;
@@ -25,6 +24,13 @@ void ChooseColor(Rooms* Rm, int idx, char* msg) {
 #endif
     GetOneRoomInfo(Rm, in_room[idx], buf);
     SendAll(Rm, buf, 1);
+}
+
+void CloseRoom(Rooms* tar) {
+    for(int j=0; j<tar->num_players; j++) 
+        Close(tar->plyData[j].i);
+    init_RoomInfo(tar);
+    return;
 }
 
 void GetOneRoomInfo(Rooms* tar, int rID, char* ret) {
@@ -52,6 +58,24 @@ void GetRoomInfo(Rooms* tar, int rID, char* ret) {
     else // unavailable
         sprintf(ret, "ru %d %d %d ", rID, tar->num_players, tar->rnd);
     return;
+}
+
+void GetScore(Rooms* tar) {
+    char buf[MAXLINE];
+    char tmp[100];
+    sprintf(buf, "ws ");
+    //ws {won[:] values[:]} {score[:]}
+    for(int k=0; k<9; k++) {
+        sprintf(tmp, "%d %d ", tar->wonstk[k], tar->values[k]);
+        strcat(buf, tmp);
+    }
+    for(int k=0; k<tar->num_players; k++) {
+        tar->plyData[k].score += tar->plyData[k].rem_money;
+        sprintf(tmp, "%d ", tar->plyData[k].score);
+        strcat(buf, tmp);
+    }
+    SendAll(tar, buf, 0);
+    CloseRoom(tar);
 }
 
 void init_PlayerInfo(Rooms* tar, int i) {
@@ -136,9 +160,21 @@ void MakePrivate(Rooms* tar, int idx, char* Pwd, int k) {
     else if(tar->plyData[0].i == idx && k < 2) {
         tar->passkey = PIN;
     }
+    if(tar->passkey != 10000) tar->madePriv = time(NULL);
     char tmp[MAXLINE];  
     GetOneRoomInfo(tar, in_room[idx], tmp);
     SendAll(tar, tmp, 1);
+}
+
+void StartGame(Rooms* Rm) {
+    char buf[MAXLINE];
+    sprintf(buf, "GAMESTART\n");
+    SendAll(Rm, buf, 0);
+    if(Rm->stat == 4) {
+        Rm->stat = 1;
+        memcpy(Rm->abdMoney, AbdMoney[Rm->num_players-3], sizeof AbdMoney[Rm->num_players-3]);
+    }
+    return;
 }
 
 void Unlock(Rooms* tar, int i) {

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+make
+
 echo "Starting Auto Player Server..."
 ./out/apServ &
 APSERV_PID=$!

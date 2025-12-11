@@ -1,13 +1,9 @@
 #include "libserv.h"
 
-#define DEBUG
-
 extern struct pollfd clients[FOPEN_MAX];
 extern int in_room[FOPEN_MAX]; //hash map
 extern time_t lst_conn[FOPEN_MAX]; //last msg timestamp
 extern Queue* q;
-extern const int AbdMoney[3][5];
-extern const int Cards[10];
 extern int maxi;
 
 void ApConnect(Rooms* tar, int pID, int rID) {
@@ -98,9 +94,7 @@ void ExitCli(int idx, Rooms* Rm, int rID, int pID) {
         SendAll(Rm, tmp, 2);
         for(int i=0; i<Rm->num_players; i++) if(Rm->plyData[i].i == -1) n++;
         if(Rm->rnd == 0 || n > 1 || Rm->auto_player) {
-            for(int i=0; i<Rm->num_players; i++) 
-                Close(Rm->plyData[i].i);
-            init_RoomInfo(Rm);
+            CloseRoom(Rm);
             return;
         }
         else {
@@ -125,23 +119,6 @@ void ExitCli(int idx, Rooms* Rm, int rID, int pID) {
     }
 }
 
-void GetScore(Rooms* tar) {
-    char buf[MAXLINE];
-    char tmp[100];
-    sprintf(buf, "ws ");
-    //ws {won[:] values[:]} {score[:]}
-    for(int k=0; k<9; k++) {
-        sprintf(tmp, "%d %d ", tar->wonstk[k], tar->values[k]);
-        strcat(buf, tmp);
-    }
-    for(int k=0; k<tar->num_players; k++) {
-        tar->plyData[k].score += tar->plyData[k].rem_money;
-        sprintf(tmp, "%d ", tar->plyData[k].score);
-        strcat(buf, tmp);
-    }
-    SendAll(tar, buf, 0);
-}
-
 bool isValidStr(char* tar, int n) {
     tar[n] = 0;
     if(n > 1 && tar[0] == '1' && tar[1] == '1') {
@@ -156,194 +133,31 @@ bool isValidStr(char* tar, int n) {
     return 1;
 }
 
-void Rabbit(Rooms* tar, int i, char* msg) {
-    //client chooses rabbit
-    //19 {rabbit}
-    if(msg[0] != '1' || msg[1] != '9') return;
-    int pID = 0;
-    for(int j=0; j<tar->num_players; j++) {
-        if(tar->plyData[j].i == i) {
-            pID = j;
-            break;
+void SendAll(Rooms* tar, char* msg, int c) {
+    //c: 1 print id, 2 from exitcli, 3 from exitcli and print id, 10 if ignore player 0
+    char tmp[MAXLINE];
+    int k = (c == 10);
+    for(int i=k; i<tar->num_players; i++) {
+        if(tar->plyData[i].i == -1) continue;
+        if(c == 1 || c == 3)
+            sprintf(tmp, "%s %d \n", msg, i);
+        else {
+            strcpy(tmp, msg);
+            if(tmp[0] != 'a') strcpy(tar->LastBroadcast, tmp);
         }
-    }
-    int r = rand() % 10;
-    int c;
-    sscanf(msg, "19 %d", &c);
-    c = (c+r) % 10;
-    int k = (pID+1) % tar->num_players;
-    tar->rabbit[k] = c;
-    bitw1(&tar->plyData[k].MASK_Uc, c);
-    char tmp[10];
-    if(tar->auto_player && tar->num_players == 4 && tar->plyData[k].i == -1) {
-        //choose rabbit for host
-        tar->rabbit[0] = rand()%10;
-        bitw1(&tar->plyData[0].MASK_Uc, tar->rabbit[0]);
-        sprintf(tmp, "ri %d\n", tar->rabbit[0]);
-        if(Write(clients[tar->plyData[0].i].fd, tmp, strlen(tmp)) == -1) {
-            ExitCli(tar->plyData[0].i, tar, in_room[tar->plyData[0].i], 0);
-            return;
-        }
-        SendAll(tar, "START_ROUND\n", 10);
-        if(tar->stat == 0) return;
-        tar->nPlayer = 0;
-        tar->sPlayer = 0;
-        tar->rnd = 1;
-        ApConnect(tar, 3, in_room[tar->plyData[0].i]);
-        return;
-    }
-    sprintf(tmp, "ri %d\n", c);
-    if(Write(clients[tar->plyData[k].i].fd, tmp, strlen(tmp)) == -1) {
-        ExitCli(tar->plyData[k].i, tar, in_room[tar->plyData[k].i], k);
-        return;
-    }
-    if(k == 0) {
-        SendAll(tar, "START_ROUND\n", 10);
-        if(tar->stat == 0) return;
-        tar->nPlayer = 0;
-        tar->sPlayer = 0;
-        tar->rnd = 1;
-    }
-}
-
-void RecvBid(Rooms* tar, char* msg) {
-    //17 {PlayerID} {amount} {rem_money} 
-    if(msg[0] != '1' || msg[1] != '7') return;
-    int pID, pri, rem, cd = -1, nply = 0;
-    char buf[MAXLINE];
-    sscanf(msg, "17 %d %d %d", &pID, &pri, &rem);
-    //b {PlayerID} {amount} {nPlayer} {card}
-    if(pID != tar->nPlayer || (pri <= tar->lstbid && pri != 0)) nply = -1;
-    else if(rem != tar->plyData[pID].rem_money) nply = -1;
-    else if(pri == 0) {
-        tar->plyData[pID].rem_money += tar->abdMoney[tar->aban];
-        tar->plyData[pID].LastBid = -1;
-        cd = tar->stks[tar->rnd-1][(tar->sPlayer+tar->aban)%tar->num_players];
-        tar->aban++;
-    }
-    else {
-        tar->lstbid = pri;
-        tar->plyData[pID].LastBid = pri;
-        tar->wonstk[tar->rnd-1] = pID;
-    }
-    if(nply == 0) {
-        tar->nPlayer = (tar->nPlayer+1) % tar->num_players;
-        while(tar->nPlayer != pID) {
-            if(tar->plyData[tar->nPlayer].LastBid != -1) break;
-            tar->nPlayer = (tar->nPlayer+1) % tar->num_players;
-        }
-        nply = tar->nPlayer;
-    }
-    sprintf(buf, "b %d %d %d %d\n", pID, pri, nply, cd);
-    SendAll(tar, buf, 0);
-    if(tar->stat == 0) return;
-    if(tar->aban >= tar->num_players-1 && tar->plyData[tar->nPlayer].LastBid != 0) {
-        //end bid
-        pri = -1;
-        for(int i=0; i<tar->num_players; i++) {
-            if(tar->plyData[i].LastBid > 0) {
-                tar->plyData[i].rem_money -= tar->plyData[i].LastBid;
-                pri = i;
+        if(Write(clients[tar->plyData[i].i].fd, tmp, strlen(tmp)) == -1) {
+            if(c != 2) {
+                ExitCli(tar->plyData[i].i, tar, in_room[tar->plyData[i].i], i);
+                if(c == 3) return;
+                continue;
             }
-            tar->plyData[i].LastBid = 0;
+            Close(tar->plyData[i].i);
+            tar->plyData[i].i = -1;
+            continue;
         }
-        //be {PlayerID} {amount} {sPlayer} {last_card}
-        cd = tar->stks[tar->rnd-1][(tar->sPlayer+tar->num_players-1)%tar->num_players];
-        tar->sPlayer = (tar->sPlayer+1) % tar->num_players;
-        sprintf(buf, "be %d %d %d %d\n", pri, tar->lstbid, tar->sPlayer, cd);
-        SendAll(tar, buf, 0);
-        if(tar->stat == 0) return;
-        if(pri >= 0) 
-            tar->plyData[pri].score += tar->values[tar->rnd-1];
-        tar->lstbid = 0;
-        tar->nPlayer = tar->sPlayer;
-        tar->aban = 0;
-        if(++tar->rnd == 10) {
-            tar->stat = 3;
-            return;
-        }
-        tar->stat = 1;
-        return;
-    }
-}
-
-void RecvPlay(Rooms* tar, char* msg) {
-    //13 {PlayerID} {cardID} {MaskUc}
-    int pID, cID, mskUc;
-    if(msg[0] != '1' || msg[1] != '3') return;
-    sscanf(msg, "13 %d %d %d", &pID, &cID, &mskUc);
-    int cd;
-    char buf[MAXLINE];
-    if(pID != tar->nPlayer) cd = 0;
-    else if(mskUc != tar->plyData[pID].MASK_Uc || bitis1(mskUc, cID)) cd = -1;
-    else {
-        bitw1(&(tar->plyData[pID].MASK_Uc), cID);
-        cd = 1;
-        tar->stks[tar->rnd-1][pID] = cID;
-        if(cID >= 8) {
-            if(tar->values[tar->rnd-1] >= 8 || tar->values[tar->rnd-1] == -1) tar->values[tar->rnd-1] = -1;
-            else tar->values[tar->rnd-1] = cID;
-        }
-    }
-    //c {PlayerID} {code}
-    sprintf(buf, "c %d %d\n", pID, cd);
-    SendAll(tar, buf, 0);
-    if(tar->stat == 0) return;
-    if(cd == 1) tar->nPlayer = (tar->nPlayer+1) % tar->num_players;
-
-    if(tar->nPlayer == tar->sPlayer) {
-        tar->stat = 2;
-        switch(tar->values[tar->rnd-1]) {
-        case -1:
-            //ignore all dogs
-            tar->values[tar->rnd-1] = 0;
-            for(int i=0; i<tar->num_players; i++) {
-                int j = tar->stks[tar->rnd-1][i];
-                if(j >= 8) continue;
-                else tar->values[tar->rnd-1] += Cards[j];
-            }
-            break;
-        case 8:
-            //DOG
-            tar->values[tar->rnd-1] = 0;
-            int mx = 0;
-            for(int i=0; i<tar->num_players; i++) {
-                int j = tar->stks[tar->rnd-1][i];
-                if(j >= 8) continue;
-                tar->values[tar->rnd-1] += Cards[j];
-                if(Cards[j] > mx) mx = Cards[j];
-            }
-            tar->values[tar->rnd-1] -= mx;
-            break;
-        case 9:
-            //dog
-            tar->values[tar->rnd-1] = 0;
-            int mn = 0;
-            for(int i=0; i<tar->num_players; i++) {
-                int j = tar->stks[tar->rnd-1][i];
-                if(j >= 8) continue;
-                tar->values[tar->rnd-1] += Cards[j];
-                if(Cards[j] < mn) mn = Cards[j];
-            }
-            tar->values[tar->rnd-1] -= mn;
-            break;
-        default:
-            tar->values[tar->rnd-1] = 0;
-            for(int i=0; i<tar->num_players; i++) {
-                int j = tar->stks[tar->rnd-1][i];
-                tar->values[tar->rnd-1] += Cards[j];
-            }
-        }
-    }
-}
-
-void StartGame(Rooms* Rm) {
-    char buf[MAXLINE];
-    sprintf(buf, "GAMESTART\n");
-    SendAll(Rm, buf, 0);
-    if(Rm->stat == 4) {
-        Rm->stat = 1;
-        memcpy(Rm->abdMoney, AbdMoney[Rm->num_players-3], sizeof AbdMoney[Rm->num_players-3]);
+        char tmp[3];
+        lst_conn[tar->plyData[i].i] = time(NULL);
+        push(q, clients[tar->plyData[i].i].fd, in_room[tar->plyData[i].i], tar->plyData[i].i);
     }
     return;
 }

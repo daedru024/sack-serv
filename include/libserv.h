@@ -21,6 +21,7 @@
 #define	MAXLINE	4096
 #define	SERV_PORT 9877
 
+#define DEBUG
 
 //data struct
 
@@ -51,6 +52,7 @@ typedef struct {
     int abdMoney[5]; //amount of money player gets after abandoning bid
     bool auto_player;
     char LastBroadcast[1000];
+    time_t madePriv;
     Player plyData[5];
 } Rooms;
 
@@ -96,6 +98,7 @@ int Write(int, const void*, size_t);
 
 void ApConnect(Rooms*, int, int);
 void ChooseColor(Rooms*, int, char*);
+void CloseRoom(Rooms*);
 void ExitCli(int, Rooms*, int, int);
 void GetOneRoomInfo(Rooms*, int, char*);
 void GetRoomInfo(Rooms*, int, char*);
