@@ -108,8 +108,6 @@ void ExitCli(int idx, Rooms* Rm, int rID, int pID) {
             ApConnect(Rm, pID, rID);
         }
     }
-    // if(Rm->stat == 3) Close(idx);
-    // added
     if(Rm->stat == 3) {
         for(int i=0; i<Rm->num_players; i++) {
             if(Rm->plyData[i].i == idx) {
@@ -117,24 +115,14 @@ void ExitCli(int idx, Rooms* Rm, int rID, int pID) {
                 break;
             }
         }
-
         Close(idx);
-
-        int remaining_players = 0;
-        for(int i=0; i<Rm->num_players; i++) {
-            if(Rm->plyData[i].i != -1) {
-                remaining_players++;
-            }
-        }
-
-        if(remaining_players == 0) {
-            init_RoomInfo(Rm);
+        for(int i=0; i<Rm->num_players; i++) 
+            if(Rm->plyData[i].i != -1) return;
+        init_RoomInfo(Rm);
 #ifdef DEBUG
-            printf("Room %d reset to empty.\n", rID);
+        printf("Room %d reset to empty.\n", rID);
 #endif
-        }
     }
-    //
 }
 
 void GetScore(Rooms* tar) {
@@ -321,6 +309,7 @@ void RecvPlay(Rooms* tar, char* msg) {
             int mx = 0;
             for(int i=0; i<tar->num_players; i++) {
                 int j = tar->stks[tar->rnd-1][i];
+                if(j >= 8) continue;
                 tar->values[tar->rnd-1] += Cards[j];
                 if(Cards[j] > mx) mx = Cards[j];
             }
@@ -332,6 +321,7 @@ void RecvPlay(Rooms* tar, char* msg) {
             int mn = 0;
             for(int i=0; i<tar->num_players; i++) {
                 int j = tar->stks[tar->rnd-1][i];
+                if(j >= 8) continue;
                 tar->values[tar->rnd-1] += Cards[j];
                 if(Cards[j] < mn) mn = Cards[j];
             }
