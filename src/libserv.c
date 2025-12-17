@@ -72,9 +72,9 @@ void ExitCli(int idx, Rooms* Rm, int rID, int pID) {
                 Rm->plyData[i+1].i = idx;
             }
         }
-        GetOneRoomInfo(Rm, rID, tmp);
         Close(idx);
         init_PlayerInfo(Rm, Rm->num_players);
+        GetOneRoomInfo(Rm, rID, tmp);
         SendAll(Rm, tmp, 3);
         return;
     }

@@ -170,6 +170,10 @@ void AutoPlay(int sockfd) {
             continue;
         }
         if(buf[0] == 'a') continue;
+        if(buf[0] == 'w') {
+            close(sockfd);
+            return;
+        }
         if(buf[0] == 'b') {
             int pID;
             if(buf[1] == 'e') {
@@ -219,6 +223,7 @@ void AutoPlay(int sockfd) {
             flg = 1;
         }
     } while((n = Recv(sockfd, buf)) != 0);
+    close(sockfd);
     return;
 }
 
