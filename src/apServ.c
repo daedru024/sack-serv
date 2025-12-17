@@ -223,7 +223,7 @@ void AutoPlay(int sockfd) {
             flg = 1;
         }
     } while((n = Recv(sockfd, buf)) != 0);
-    close(sockfd);
+    //close(sockfd);
     return;
 }
 
