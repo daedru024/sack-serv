@@ -57,7 +57,7 @@ int main(int argc, char** argv) {
                 pop(q);
                 continue;
             }
-            if(difftime(curr_time, lst_conn[frontNode->i]) > 61) {
+            if(difftime(curr_time, lst_conn[frontNode->i]) > 90) {
                 //timeout
                 int sockfd = frontNode->sockfd;
 #ifdef DEBUG
