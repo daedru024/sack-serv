@@ -12,7 +12,7 @@
 #include <stdbool.h>
 #include <signal.h>
 
-#define DEBUG
+//#define DEBUG
 #define	LISTENQ	1024
 #define	MAXLINE	4096
 #define	SERV_PORT 9877
@@ -124,7 +124,6 @@ void PlayCard(int sockfd, int* MASK_Uc, int playerID) {
 }
 
 void AutoPlay(int sockfd) {
-    //TODO
     //msg format: {playerID} {num_players} {MASK_Uc} {rem_money} {sPlayer} {aban} {LastBroadcast}
     char buf[1000];
     char tmp[MAXLINE];
