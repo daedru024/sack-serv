@@ -13,7 +13,6 @@ const int AbdMoney[3][5] = {{3,6,0,0,0},
 const int Cards[10] = {-8,-5,0,3,5,8,11,15,-9,9};
 
 int main(int argc, char** argv) {
-    // --- [新增] Windows 初始化 ---
     #ifdef _WIN32
     WSADATA wsaData;
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
@@ -21,7 +20,6 @@ int main(int argc, char** argv) {
         return -1;
     }
     #endif
-    // ---------------------------
 
     int i, listenfd, connfd, sockfd;
     int nready;
@@ -85,7 +83,12 @@ int main(int argc, char** argv) {
             connfd = Accept(listenfd, (struct sockaddr*) &cliaddr, &clilen);
 
             for(i=1; i<FOPEN_MAX; i++) {
-                if(clients[i].fd == -1) {
+#ifdef _WIN32
+                if(clients[i].fd == -1) 
+#else
+                if(clients[i].fd < 0) 
+#endif
+                {
                     bool has_vacant_room = (room[0].stat == 0);
                     GetRoomInfo(&room[0], 0, buf);
                     char tmp[MAXLINE];
@@ -117,42 +120,42 @@ int main(int argc, char** argv) {
         }
 
         for(i=1; i<=maxi; i++) {
+#ifdef _WIN32
             sockfd = clients[i].fd;
             if(sockfd == -1) continue;
+#else
+            if((sockfd = clients[i].fd) < 0) continue;
+#endif
             if(!(clients[i].revents & (POLLRDNORM | POLLERR))) continue;
-            // Windows recv returns int
-           if((n = recv(sockfd, buf, MAXLINE, 0)) <= 0) {
-                // 增加對 Windows 錯誤代碼的檢查
-                #ifdef _WIN32
+#ifdef _WIN32
+            if((n = recv(sockfd, buf, MAXLINE, 0)) <= 0)
+#else
+            if((n = read(sockfd, buf, MAXLINE)) <= 0)
+#endif
+            {
+#ifdef _WIN32
                 int err = WSAGetLastError();
-                if(n == 0 || err == WSAECONNRESET || err == WSAECONNABORTED) {
-                #else
-                if(n == 0 || errno == ECONNRESET) {
-                #endif
-                    // --- 這裡是原本的斷線處理邏輯，保持不變 ---
-            #ifdef DEBUG
+                if(n == 0 || err == WSAECONNRESET || err == WSAECONNABORTED) 
+#else
+                if(n == 0 || errno == ECONNRESET)
+#endif
+                {
+#ifdef DEBUG
                     if(n == 0) printf("Connection closed\n");
                     else printf("RST\n");
-            #endif
+#endif
                     if(in_room[i] == -1) ExitCli(i, NULL, -1, -1);
                     else ExitCli(i, &room[in_room[i]], in_room[i], -1);
-                    // ----------------------------------------
                 }
                 else {
-                    // 為了避免 Server 因為一個 Client 的錯誤就整個崩潰，
-                    // 建議把 err_sys 改成只印出錯誤但不退出，或者直接當作斷線處理。
-                    
-                    #ifdef _WIN32
+#ifdef _WIN32
                     printf("Read error (Winsock code: %d)\n", WSAGetLastError());
-                    #else
-                    printf("Read error: %s\n", strerror(errno));
-                    #endif
-                    
-                    // 即使是未知錯誤，也當作斷線處理比較安全，不要讓 Server 關掉
+#else
+                    err_msg("Read error");
+#endif
                     if(in_room[i] == -1) ExitCli(i, NULL, -1, -1);
                     else ExitCli(i, &room[in_room[i]], in_room[i], -1);
                 }
-                
                 if(--nready <= 0) break;
                 continue;
             }
@@ -216,7 +219,6 @@ int main(int argc, char** argv) {
                     GetOneRoomInfo(&room[rID], rID, tmp);
                     SendAll(&room[rID], tmp, 1);
                     in_room[i] = rID;
-                    //TODO
                 }
                 if(--nready <= 0) break;
                 continue;

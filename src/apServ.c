@@ -35,7 +35,6 @@
 #define	MAXLINE	4096
 #define	SERV_PORT 9877
 
-// Linux only function
 #ifndef _WIN32
 void sig_chld(int signo) {
     pid_t pid;
@@ -49,8 +48,11 @@ void err_sys(const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     vfprintf(stderr, fmt, ap); 
-    //fprintf(stderr, ": %s\n", strerror(errno)); 
+#ifndef _WIN32
+    fprintf(stderr, ": %s\n", strerror(errno)); 
+#else
     fprintf(stderr, "\n"); 
+#endif
     va_end(ap);
     exit(1);
 }
@@ -75,7 +77,9 @@ int Recv(int sockfd, char *recvline) {
 
     sel = select(sockfd + 1, &rfds, NULL, NULL, &tv);
     if (sel < 0) {
-        //if (errno == EINTR) return -1; 
+#ifndef _WIN32
+        if (errno == EINTR) return -1; 
+#endif
         err_sys("Select");
         return -1;
     }
@@ -100,11 +104,15 @@ void Write(int sockfd, const void *vptr, size_t n) {
     rem = n;
     while(rem>0) {
         if((nw = send(sockfd, ptr, rem, 0)) <= 0) {
-            //if(nw<0 && errno == EINTR) nw = 0;
-            //else {
+#ifndef _WIN32
+            if(nw<0 && errno == EINTR) nw = 0;
+            else {
+#endif
                 err_sys("Write error");
                 return;
-            //}
+#ifndef _WIN32
+            }
+#endif
         }
         rem -= nw;
         ptr += nw;
@@ -244,7 +252,9 @@ void AutoPlay(int sockfd) {
             flg = 1;
         }
     } while((n = Recv(sockfd, buf)) != 0);
-    close(sockfd); // Added for Windows Thread Safety
+#ifdef _WIN32
+    close(sockfd);
+#endif
     return;
 }
 
@@ -295,8 +305,10 @@ int main(int argc, char **argv) {
     for ( ; ; ) {
         clilen = sizeof(cliaddr);
         if ((connfd = accept(listenfd, (struct sockaddr *) &cliaddr, &clilen)) < 0) {
-            //if (errno == EINTR) continue;
-            //else 
+#ifndef _WIN32
+            if (errno == EINTR) continue;
+            else
+#endif 
             err_sys("accept");
         }
 
@@ -307,7 +319,6 @@ int main(int argc, char **argv) {
         _beginthreadex(NULL, 0, AutoPlayThread, pfd, 0, NULL);
         // Do NOT close connfd here in Windows Thread model
 #else
-        // Linux: Fork
         pid_t childpid;
         if ((childpid = fork()) == 0) {
             close(listenfd);

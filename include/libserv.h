@@ -16,12 +16,6 @@
     #define poll WSAPoll
     #define __builtin_popcount __popcnt
 
-    // [修正] 移除 pollfd 的 define
-    // 因為程式碼裡寫的是 "struct pollfd"，如果 define 變成 "struct WSAPOLLFD"，
-    // 編譯器會找不到這個 struct 的定義，導致滿江紅。
-    // Winsock2.h 本身就已經定義了 struct pollfd，所以直接用即可。
-    // #define pollfd WSAPOLLFD  <-- 這一行刪掉或註解掉
-
     #define MSG_NOSIGNAL 0
     #define bzero(b, len) memset(b, 0, len)
 
@@ -62,6 +56,7 @@
     #include <arpa/inet.h>
     #include <poll.h>
     #include <unistd.h>
+    #include <errno.h>
 #endif
 
 #include <time.h>

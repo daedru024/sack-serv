@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-make
+rm -rf build out
+cmake -B build
+cmake --build build 
 
 echo "Starting Auto Player Server..."
 ./out/apServ &

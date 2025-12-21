@@ -24,7 +24,11 @@ void err_sys(const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     vfprintf(stderr, fmt, ap); 
+#ifndef _WIN32
     fprintf(stderr, ": %s\n", strerror(errno)); 
+#else
+    fprintf(stderr, "\n"); 
+#endif
     va_end(ap);
     exit(1);
 }
