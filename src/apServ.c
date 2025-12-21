@@ -29,6 +29,7 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <time.h>
 
 //#define DEBUG
 #define	LISTENQ	1024
