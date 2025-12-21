@@ -126,36 +126,32 @@ int main(int argc, char** argv) {
 #else
             if((sockfd = clients[i].fd) < 0) continue;
 #endif
-            if(!(clients[i].revents & (POLLRDNORM | POLLERR))) continue;
+            if(!(clients[i].revents & (POLLRDNORM | POLLERR | POLLHUP | POLLNVAL))) continue;
 #ifdef _WIN32
-            if((n = recv(sockfd, buf, MAXLINE, 0)) <= 0)
+            n = recv(sockfd, buf, MAXLINE, 0);
 #else
-            if((n = read(sockfd, buf, MAXLINE)) <= 0)
+            n = read(sockfd, buf, MAXLINE);
 #endif
-            {
+            if(n <= 0) {
 #ifdef _WIN32
                 int err = WSAGetLastError();
-                if(n == 0 || err == WSAECONNRESET || err == WSAECONNABORTED) 
-#else
-                if(n == 0 || errno == ECONNRESET)
-#endif
-                {
+                if(n == 0 || err == WSAECONNRESET || err == WSAECONNABORTED || err == WSAESHUTDOWN) {
 #ifdef DEBUG
-                    if(n == 0) printf("Connection closed\n");
-                    else printf("RST\n");
+                    printf("Client %d disconnected (Code: %d)\n", i, (n==0 ? 0 : err));
 #endif
-                    if(in_room[i] == -1) ExitCli(i, NULL, -1, -1);
-                    else ExitCli(i, &room[in_room[i]], in_room[i], -1);
                 }
                 else {
-#ifdef _WIN32
-                    printf("Read error (Winsock code: %d)\n", WSAGetLastError());
-#else
-                    err_msg("Read error");
-#endif
-                    if(in_room[i] == -1) ExitCli(i, NULL, -1, -1);
-                    else ExitCli(i, &room[in_room[i]], in_room[i], -1);
+                    printf("Read error on client %d (Winsock code: %d)\n", i, err);
                 }
+#else
+                if(n == 0 || errno == ECONNRESET) {
+                } else {
+                    err_msg("Read error");
+                }
+#endif
+                if(in_room[i] == -1) ExitCli(i, NULL, -1, -1);
+                else ExitCli(i, &room[in_room[i]], in_room[i], -1);
+
                 if(--nready <= 0) break;
                 continue;
             }
