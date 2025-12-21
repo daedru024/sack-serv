@@ -13,13 +13,13 @@ const int AbdMoney[3][5] = {{3,6,0,0,0},
 const int Cards[10] = {-8,-5,0,3,5,8,11,15,-9,9};
 
 int main(int argc, char** argv) {
-    #ifdef _WIN32
+#ifdef _WIN32
     WSADATA wsaData;
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
         err_sys("WSAStartup failed");
         return -1;
     }
-    #endif
+#endif
 
     int i, listenfd, connfd, sockfd;
     int nready;
@@ -123,13 +123,11 @@ int main(int argc, char** argv) {
 #ifdef _WIN32
             sockfd = clients[i].fd;
             if(sockfd == -1) continue;
-#else
-            if((sockfd = clients[i].fd) < 0) continue;
-#endif
             if(!(clients[i].revents & (POLLRDNORM | POLLERR | POLLHUP | POLLNVAL))) continue;
-#ifdef _WIN32
             n = recv(sockfd, buf, MAXLINE, 0);
 #else
+            if((sockfd = clients[i].fd) < 0) continue;
+            if(!(clients[i].revents & (POLLRDNORM | POLLERR))) continue;
             n = read(sockfd, buf, MAXLINE);
 #endif
             if(n <= 0) {
@@ -145,9 +143,12 @@ int main(int argc, char** argv) {
                 }
 #else
                 if(n == 0 || errno == ECONNRESET) {
-                } else {
-                    err_msg("Read error");
-                }
+#ifdef DEBUG
+                    if(n == 0) printf("Connection closed\n");
+                    else printf("RST\n");
+#endif
+                } 
+                else err_msg("Read error");
 #endif
                 if(in_room[i] == -1) ExitCli(i, NULL, -1, -1);
                 else ExitCli(i, &room[in_room[i]], in_room[i], -1);
