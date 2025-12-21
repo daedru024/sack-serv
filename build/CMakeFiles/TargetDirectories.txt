@@ -1,4 +1,0 @@
-C:/Users/ryanl/OneDrive/Desktop/sack-serv_win/build/CMakeFiles/sackServ.dir
-C:/Users/ryanl/OneDrive/Desktop/sack-serv_win/build/CMakeFiles/apServ.dir
-C:/Users/ryanl/OneDrive/Desktop/sack-serv_win/build/CMakeFiles/edit_cache.dir
-C:/Users/ryanl/OneDrive/Desktop/sack-serv_win/build/CMakeFiles/rebuild_cache.dir
