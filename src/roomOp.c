@@ -6,7 +6,7 @@ extern struct pollfd clients[FOPEN_MAX];
 extern int in_room[FOPEN_MAX]; //hash map
 extern const int AbdMoney[3][5];
 
-void ChooseColor(Rooms* Rm, int idx, char* msg) {
+void GameChooseColor(Rooms* Rm, int idx, char* msg) {
     int col, k;
     char buf[MAXLINE];
     sscanf(msg, "7 %d", &col);
@@ -35,13 +35,23 @@ void CloseRoom(Rooms* tar) {
 
 void GetOneRoomInfo(Rooms* tar, int rID, char* ret) {
     //in {RoomID} {n_Players} {username[:] color[:]} {locked} {PIN} {playerID}
-    char tmp[20];
+    char tmp[MAXLINE]; // 稍微加大一點比較安全，原來的 20 可能有點緊繃
+    
+    // 1. 初始化開頭
     sprintf(ret, "in %d %d ", rID, tar->num_players);
+    
+    // 2. 透過 strcat 串接玩家資訊
     for(int i=0; i<tar->num_players; i++) {
         sprintf(tmp, "%s %d ", tar->plyData[i].username, tar->plyData[i].col);
         strcat(ret, tmp);
     }
-    sprintf(ret, "%s%d %04d ", ret, (tar->stat==4 && tar->rnd==0), tar->passkey);
+
+    // 3. [修正] 透過 sprintf 寫入另一個 buffer，再 strcat 上去
+    // 避免 sprintf(ret, "%s...", ret) 的未定義行為
+    char tail[50];
+    sprintf(tail, "%d %04d ", (tar->stat==4 && tar->rnd==0), tar->passkey);
+    strcat(ret, tail);
+    
     return;
 }
 
@@ -50,10 +60,16 @@ void GetRoomInfo(Rooms* tar, int rID, char* ret) {
         // available
         sprintf(ret, "ra %d %d ", rID, tar->num_players);
         for(int i=0; i<tar->num_players; i++) {
-            sprintf(ret, "%s%s %d ", ret, tar->plyData[i].username, tar->plyData[i].col);
+            // [修正] 這裡原本也是 ret = ret + ... 的錯誤寫法
+            // 改用 pointer arithmetic 或 strcat
+            char tmp[MAXLINE];
+            sprintf(tmp, "%s %d ", tar->plyData[i].username, tar->plyData[i].col);
+            strcat(ret, tmp);
         }
-        if(tar->passkey == 10000) sprintf(ret, "%s0 ", ret);
-        else sprintf(ret, "%s1 ", ret);
+        
+        // [修正] 尾部串接
+        if(tar->passkey == 10000) strcat(ret, "0 ");
+        else strcat(ret, "1 ");
     }
     else // unavailable
         sprintf(ret, "ru %d %d %d ", rID, tar->num_players, tar->rnd);

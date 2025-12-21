@@ -10,9 +10,9 @@ int Accept(int sockfd, struct sockaddr* sa, socklen_t *ptr) {
     int n;
 again:
     if((n = accept(sockfd, sa, ptr)) < 0) {
-        if(errno == ECONNABORTED)
-            goto again;
-        else 
+        //if(errno == ECONNABORTED)
+        //    goto again;
+        //else 
             err_sys("accept error");
     }
     return n;
@@ -24,12 +24,12 @@ int Close(int idx) {
     Delete(q, idx);
     in_room[idx] = -1;
     if(close(clients[idx].fd) == -1) {
-        if(errno == EBADF) {
-            clients[idx].fd = -1;
-            return -1;
-        }
-        err_sys("close error");
-        return -1;
+        //if(errno == EBADF) {
+        //    clients[idx].fd = -1;
+        //    return -1;
+        //}
+        //err_sys("close error");
+        //return -1;
     }
     clients[idx].fd = -1;
     return 0;
@@ -39,9 +39,9 @@ int Closefd(int sockfd) {
     int n;
     if(sockfd < 0) return 0;
     if(close(sockfd) == -1) {
-        if(errno == EBADF) return -1;
-        err_sys("close error");
-        return -1;
+        //if(errno == EBADF) return -1;
+        //err_sys("close error");
+        //return -1;
     }
     return 0;
 }
@@ -67,13 +67,22 @@ int Write(int sockfd, const void *vptr, size_t n) {
     size_t rem;
     ssize_t nw;
     const char *ptr = vptr;
+    char debug_buf[4096];
+    if (n < 4096) {
+        memcpy(debug_buf, vptr, n);
+        debug_buf[n] = '\0';
+        // 使用 [] 包起來以便觀察有沒有多餘的空白或換行
+        printf("[DEBUG SEND]: [%s]\n", debug_buf); 
+        fflush(stdout); // 強制立刻印出，不要緩衝
+    }
     rem = n;
     while(rem>0) {
+        // MSG_NOSIGNAL is defined as 0 in libserv.h for Windows
         if((nw = send(sockfd, ptr, rem, MSG_NOSIGNAL)) <= 0) {
-            if(nw<0 && errno == EINTR) continue;
+            //if(nw<0 && errno == EINTR) continue;
             if(nw == 0) return -1;
             else {
-                err_sys("Write error");
+                //err_sys("Write error");
                 return -1;
             }
         }

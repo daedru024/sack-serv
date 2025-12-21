@@ -1,0 +1,50 @@
+[
+{
+  "directory": "C:/Users/ryanl/OneDrive/Desktop/sack-serv_win/build",
+  "command": "C:\\PROGRA~1\\MICROS~4\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo -D_WIN32 -IC:\\Users\\ryanl\\OneDrive\\Desktop\\sack-serv_win\\include /DWIN32 /D_WINDOWS /O2 /Ob2 /DNDEBUG -std:c11 -MD /utf-8 /FoCMakeFiles\\sackServ.dir\\src\\main.c.obj /FdCMakeFiles\\sackServ.dir\\ /FS -c C:\\Users\\ryanl\\OneDrive\\Desktop\\sack-serv_win\\src\\main.c",
+  "file": "C:\\Users\\ryanl\\OneDrive\\Desktop\\sack-serv_win\\src\\main.c",
+  "output": "CMakeFiles\\sackServ.dir\\src\\main.c.obj"
+},
+{
+  "directory": "C:/Users/ryanl/OneDrive/Desktop/sack-serv_win/build",
+  "command": "C:\\PROGRA~1\\MICROS~4\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo -D_WIN32 -IC:\\Users\\ryanl\\OneDrive\\Desktop\\sack-serv_win\\include /DWIN32 /D_WINDOWS /O2 /Ob2 /DNDEBUG -std:c11 -MD /utf-8 /FoCMakeFiles\\sackServ.dir\\src\\libserv.c.obj /FdCMakeFiles\\sackServ.dir\\ /FS -c C:\\Users\\ryanl\\OneDrive\\Desktop\\sack-serv_win\\src\\libserv.c",
+  "file": "C:\\Users\\ryanl\\OneDrive\\Desktop\\sack-serv_win\\src\\libserv.c",
+  "output": "CMakeFiles\\sackServ.dir\\src\\libserv.c.obj"
+},
+{
+  "directory": "C:/Users/ryanl/OneDrive/Desktop/sack-serv_win/build",
+  "command": "C:\\PROGRA~1\\MICROS~4\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo -D_WIN32 -IC:\\Users\\ryanl\\OneDrive\\Desktop\\sack-serv_win\\include /DWIN32 /D_WINDOWS /O2 /Ob2 /DNDEBUG -std:c11 -MD /utf-8 /FoCMakeFiles\\sackServ.dir\\src\\sockwrap.c.obj /FdCMakeFiles\\sackServ.dir\\ /FS -c C:\\Users\\ryanl\\OneDrive\\Desktop\\sack-serv_win\\src\\sockwrap.c",
+  "file": "C:\\Users\\ryanl\\OneDrive\\Desktop\\sack-serv_win\\src\\sockwrap.c",
+  "output": "CMakeFiles\\sackServ.dir\\src\\sockwrap.c.obj"
+},
+{
+  "directory": "C:/Users/ryanl/OneDrive/Desktop/sack-serv_win/build",
+  "command": "C:\\PROGRA~1\\MICROS~4\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo -D_WIN32 -IC:\\Users\\ryanl\\OneDrive\\Desktop\\sack-serv_win\\include /DWIN32 /D_WINDOWS /O2 /Ob2 /DNDEBUG -std:c11 -MD /utf-8 /FoCMakeFiles\\sackServ.dir\\src\\Queue.c.obj /FdCMakeFiles\\sackServ.dir\\ /FS -c C:\\Users\\ryanl\\OneDrive\\Desktop\\sack-serv_win\\src\\Queue.c",
+  "file": "C:\\Users\\ryanl\\OneDrive\\Desktop\\sack-serv_win\\src\\Queue.c",
+  "output": "CMakeFiles\\sackServ.dir\\src\\Queue.c.obj"
+},
+{
+  "directory": "C:/Users/ryanl/OneDrive/Desktop/sack-serv_win/build",
+  "command": "C:\\PROGRA~1\\MICROS~4\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo -D_WIN32 -IC:\\Users\\ryanl\\OneDrive\\Desktop\\sack-serv_win\\include /DWIN32 /D_WINDOWS /O2 /Ob2 /DNDEBUG -std:c11 -MD /utf-8 /FoCMakeFiles\\sackServ.dir\\src\\roomOp.c.obj /FdCMakeFiles\\sackServ.dir\\ /FS -c C:\\Users\\ryanl\\OneDrive\\Desktop\\sack-serv_win\\src\\roomOp.c",
+  "file": "C:\\Users\\ryanl\\OneDrive\\Desktop\\sack-serv_win\\src\\roomOp.c",
+  "output": "CMakeFiles\\sackServ.dir\\src\\roomOp.c.obj"
+},
+{
+  "directory": "C:/Users/ryanl/OneDrive/Desktop/sack-serv_win/build",
+  "command": "C:\\PROGRA~1\\MICROS~4\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo -D_WIN32 -IC:\\Users\\ryanl\\OneDrive\\Desktop\\sack-serv_win\\include /DWIN32 /D_WINDOWS /O2 /Ob2 /DNDEBUG -std:c11 -MD /utf-8 /FoCMakeFiles\\sackServ.dir\\src\\gameplay.c.obj /FdCMakeFiles\\sackServ.dir\\ /FS -c C:\\Users\\ryanl\\OneDrive\\Desktop\\sack-serv_win\\src\\gameplay.c",
+  "file": "C:\\Users\\ryanl\\OneDrive\\Desktop\\sack-serv_win\\src\\gameplay.c",
+  "output": "CMakeFiles\\sackServ.dir\\src\\gameplay.c.obj"
+},
+{
+  "directory": "C:/Users/ryanl/OneDrive/Desktop/sack-serv_win/build",
+  "command": "C:\\PROGRA~1\\MICROS~4\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo -D_WIN32 -IC:\\Users\\ryanl\\OneDrive\\Desktop\\sack-serv_win\\include /DWIN32 /D_WINDOWS /O2 /Ob2 /DNDEBUG -std:c11 -MD /utf-8 /FoCMakeFiles\\sackServ.dir\\src\\errfunc.c.obj /FdCMakeFiles\\sackServ.dir\\ /FS -c C:\\Users\\ryanl\\OneDrive\\Desktop\\sack-serv_win\\src\\errfunc.c",
+  "file": "C:\\Users\\ryanl\\OneDrive\\Desktop\\sack-serv_win\\src\\errfunc.c",
+  "output": "CMakeFiles\\sackServ.dir\\src\\errfunc.c.obj"
+},
+{
+  "directory": "C:/Users/ryanl/OneDrive/Desktop/sack-serv_win/build",
+  "command": "C:\\PROGRA~1\\MICROS~4\\18\\COMMUN~1\\VC\\Tools\\MSVC\\1450~1.357\\bin\\Hostx64\\x64\\cl.exe  /nologo -D_WIN32 -IC:\\Users\\ryanl\\OneDrive\\Desktop\\sack-serv_win\\include /DWIN32 /D_WINDOWS /O2 /Ob2 /DNDEBUG -std:c11 -MD /utf-8 /FoCMakeFiles\\apServ.dir\\src\\apServ.c.obj /FdCMakeFiles\\apServ.dir\\ /FS -c C:\\Users\\ryanl\\OneDrive\\Desktop\\sack-serv_win\\src\\apServ.c",
+  "file": "C:\\Users\\ryanl\\OneDrive\\Desktop\\sack-serv_win\\src\\apServ.c",
+  "output": "CMakeFiles\\apServ.dir\\src\\apServ.c.obj"
+}
+]

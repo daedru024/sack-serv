@@ -1,34 +1,56 @@
-#include <sys/socket.h>
-#include <sys/time.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <errno.h>
+#ifdef _WIN32
+    #include <winsock2.h>
+    #include <ws2tcpip.h>
+    #include <windows.h>
+    #include <process.h>
+    #include <intrin.h>
+    #include <BaseTsd.h>
+
+    typedef SSIZE_T ssize_t;
+
+    #define close closesocket
+    #define sleep(x) Sleep((x)*1000)
+    #pragma comment(lib, "ws2_32.lib")
+    #define bzero(b, len) memset(b, 0, len)
+    #define __builtin_popcount __popcnt
+#else
+    #include <sys/socket.h>
+    #include <sys/time.h>
+    #include <netinet/in.h>
+    #include <arpa/inet.h>
+    #include <unistd.h>
+    #include <signal.h>
+    #include <sys/wait.h>
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <stdarg.h>
 #include <stdbool.h>
-#include <signal.h>
+#include <errno.h>
 
 //#define DEBUG
 #define	LISTENQ	1024
 #define	MAXLINE	4096
 #define	SERV_PORT 9877
 
+// Linux only function
+#ifndef _WIN32
 void sig_chld(int signo) {
     pid_t pid;
     int stat;
     while ((pid = waitpid(-1, &stat, WNOHANG)) > 0) {}
     return;
 }
+#endif
 
 void err_sys(const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     vfprintf(stderr, fmt, ap); 
-    fprintf(stderr, ": %s\n", strerror(errno)); 
+    //fprintf(stderr, ": %s\n", strerror(errno)); 
+    fprintf(stderr, "\n"); 
     va_end(ap);
     exit(1);
 }
@@ -53,7 +75,7 @@ int Recv(int sockfd, char *recvline) {
 
     sel = select(sockfd + 1, &rfds, NULL, NULL, &tv);
     if (sel < 0) {
-        if (errno == EINTR) return -1; 
+        //if (errno == EINTR) return -1; 
         err_sys("Select");
         return -1;
     }
@@ -77,12 +99,12 @@ void Write(int sockfd, const void *vptr, size_t n) {
     const char *ptr = vptr;
     rem = n;
     while(rem>0) {
-        if((nw = write(sockfd, ptr, rem)) <= 0) {
-            if(nw<0 && errno == EINTR) nw = 0;
-            else {
+        if((nw = send(sockfd, ptr, rem, 0)) <= 0) {
+            //if(nw<0 && errno == EINTR) nw = 0;
+            //else {
                 err_sys("Write error");
                 return;
-            }
+            //}
         }
         rem -= nw;
         ptr += nw;
@@ -222,15 +244,29 @@ void AutoPlay(int sockfd) {
             flg = 1;
         }
     } while((n = Recv(sockfd, buf)) != 0);
-    //close(sockfd);
+    close(sockfd); // Added for Windows Thread Safety
     return;
 }
 
+#ifdef _WIN32
+// Windows Thread Function Wrapper
+unsigned __stdcall AutoPlayThread(void* arg) {
+    int connfd = *(int*)arg;
+    free(arg);
+    AutoPlay(connfd);
+    return 0;
+}
+#endif
+
 int main(int argc, char **argv) {
-    int listenfd, connfd, connfd2;
-    pid_t childpid;
+    int listenfd, connfd;
     socklen_t clilen;
     struct sockaddr_in cliaddr, servaddr;
+
+#ifdef _WIN32
+    WSADATA wsaData;
+    WSAStartup(MAKEWORD(2, 2), &wsaData);
+#endif
 
     if ((listenfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         err_sys("socket error");
@@ -241,7 +277,7 @@ int main(int argc, char **argv) {
     servaddr.sin_port = htons(SERV_PORT+1);
 
     int opt = 1;
-    if (setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+    if (setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, (char*)&opt, sizeof(opt)) < 0) {
         perror("setsockopt(SO_REUSEADDR) failed");
         close(listenfd);
         exit(1);
@@ -251,18 +287,34 @@ int main(int argc, char **argv) {
         err_sys("bind error");
 
     Listen(listenfd, LISTENQ);
+    
+#ifndef _WIN32
     signal(SIGCHLD, sig_chld);
+#endif
+
     for ( ; ; ) {
         clilen = sizeof(cliaddr);
         if ((connfd = accept(listenfd, (struct sockaddr *) &cliaddr, &clilen)) < 0) {
-            if (errno == EINTR) continue;
-            else err_sys("accept");
+            //if (errno == EINTR) continue;
+            //else 
+            err_sys("accept");
         }
+
+#ifdef _WIN32
+        // Windows: Create Thread
+        int* pfd = malloc(sizeof(int));
+        *pfd = connfd;
+        _beginthreadex(NULL, 0, AutoPlayThread, pfd, 0, NULL);
+        // Do NOT close connfd here in Windows Thread model
+#else
+        // Linux: Fork
+        pid_t childpid;
         if ((childpid = fork()) == 0) {
             close(listenfd);
             AutoPlay(connfd);
             exit(0);
         }
         close(connfd);
+#endif
     }
 }

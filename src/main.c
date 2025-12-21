@@ -13,6 +13,16 @@ const int AbdMoney[3][5] = {{3,6,0,0,0},
 const int Cards[10] = {-8,-5,0,3,5,8,11,15,-9,9};
 
 int main(int argc, char** argv) {
+    // --- [新增] Windows 初始化 ---
+    #ifdef _WIN32
+    WSADATA wsaData;
+    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+        err_sys("WSAStartup failed");
+        return -1;
+    }
+    #endif
+    // ---------------------------
+
     int i, listenfd, connfd, sockfd;
     int nready;
     ssize_t n;
@@ -75,7 +85,7 @@ int main(int argc, char** argv) {
             connfd = Accept(listenfd, (struct sockaddr*) &cliaddr, &clilen);
 
             for(i=1; i<FOPEN_MAX; i++) {
-                if(clients[i].fd < 0) {
+                if(clients[i].fd == -1) {
                     bool has_vacant_room = (room[0].stat == 0);
                     GetRoomInfo(&room[0], 0, buf);
                     char tmp[MAXLINE];
@@ -107,18 +117,42 @@ int main(int argc, char** argv) {
         }
 
         for(i=1; i<=maxi; i++) {
-            if((sockfd = clients[i].fd) < 0) continue;
+            sockfd = clients[i].fd;
+            if(sockfd == -1) continue;
             if(!(clients[i].revents & (POLLRDNORM | POLLERR))) continue;
-            if((n = read(sockfd, buf, MAXLINE)) <= 0) {
+            // Windows recv returns int
+           if((n = recv(sockfd, buf, MAXLINE, 0)) <= 0) {
+                // 增加對 Windows 錯誤代碼的檢查
+                #ifdef _WIN32
+                int err = WSAGetLastError();
+                if(n == 0 || err == WSAECONNRESET || err == WSAECONNABORTED) {
+                #else
                 if(n == 0 || errno == ECONNRESET) {
-#ifdef DEBUG
+                #endif
+                    // --- 這裡是原本的斷線處理邏輯，保持不變 ---
+            #ifdef DEBUG
                     if(n == 0) printf("Connection closed\n");
                     else printf("RST\n");
-#endif
+            #endif
+                    if(in_room[i] == -1) ExitCli(i, NULL, -1, -1);
+                    else ExitCli(i, &room[in_room[i]], in_room[i], -1);
+                    // ----------------------------------------
+                }
+                else {
+                    // 為了避免 Server 因為一個 Client 的錯誤就整個崩潰，
+                    // 建議把 err_sys 改成只印出錯誤但不退出，或者直接當作斷線處理。
+                    
+                    #ifdef _WIN32
+                    printf("Read error (Winsock code: %d)\n", WSAGetLastError());
+                    #else
+                    printf("Read error: %s\n", strerror(errno));
+                    #endif
+                    
+                    // 即使是未知錯誤，也當作斷線處理比較安全，不要讓 Server 關掉
                     if(in_room[i] == -1) ExitCli(i, NULL, -1, -1);
                     else ExitCli(i, &room[in_room[i]], in_room[i], -1);
                 }
-                else err_sys("read error");
+                
                 if(--nready <= 0) break;
                 continue;
             }
@@ -196,7 +230,7 @@ int main(int argc, char** argv) {
                     Lock(&room[rID], i);
                 //choose color
                 else if(buf[0] == '7') 
-                    ChooseColor(&room[rID], i, buf);
+                    GameChooseColor(&room[rID], i, buf);
                 //make private/public
                 else if(buf[0] == '5') {
                     int k = 0;
@@ -219,7 +253,7 @@ int main(int argc, char** argv) {
                 break;
             case 4:
                 if(buf[0] == '7') 
-                    ChooseColor(&room[rID], i, buf);
+                    GameChooseColor(&room[rID], i, buf);
                 else if(buf[0] == '3') 
                     Lock(&room[rID], i);
                 else if(buf[0] == '2') 

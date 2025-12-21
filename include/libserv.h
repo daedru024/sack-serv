@@ -1,18 +1,74 @@
 #ifndef __lib_serv
 #define __lib_serv
 
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <poll.h>
-#include <errno.h>
+#ifdef _WIN32
+    #include <winsock2.h>
+    #include <ws2tcpip.h>
+    #include <windows.h>
+    #include <process.h>
+    #include <intrin.h>
+    #include <BaseTsd.h>
+    typedef SSIZE_T ssize_t;
+
+    #pragma comment(lib, "ws2_32.lib")
+
+    #define close closesocket
+    #define poll WSAPoll
+    #define __builtin_popcount __popcnt
+
+    // [修正] 移除 pollfd 的 define
+    // 因為程式碼裡寫的是 "struct pollfd"，如果 define 變成 "struct WSAPOLLFD"，
+    // 編譯器會找不到這個 struct 的定義，導致滿江紅。
+    // Winsock2.h 本身就已經定義了 struct pollfd，所以直接用即可。
+    // #define pollfd WSAPOLLFD  <-- 這一行刪掉或註解掉
+
+    #define MSG_NOSIGNAL 0
+    #define bzero(b, len) memset(b, 0, len)
+
+    #ifndef POLLRDNORM
+        #define POLLRDNORM 0x0100
+    #endif
+    #ifndef POLLRDBAND
+        #define POLLRDBAND 0x0200
+    #endif
+    #ifndef POLLIN
+        #define POLLIN 0x0300
+    #endif
+    #ifndef POLLPRI
+        #define POLLPRI 0x0400
+    #endif
+    #ifndef POLLWRNORM
+        #define POLLWRNORM 0x0010
+    #endif
+    #ifndef POLLOUT
+        #define POLLOUT (POLLWRNORM)
+    #endif
+    #ifndef POLLWRBAND
+        #define POLLWRBAND 0x0020
+    #endif
+    #ifndef POLLERR
+        #define POLLERR 0x0008
+    #endif
+    #ifndef POLLHUP
+        #define POLLHUP 0x0002
+    #endif
+    #ifndef POLLNVAL
+        #define POLLNVAL 0x0004
+    #endif
+
+#else
+    #include <sys/socket.h>
+    #include <netinet/in.h>
+    #include <arpa/inet.h>
+    #include <poll.h>
+    #include <unistd.h>
+#endif
 
 #include <time.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <limits.h>
 #include <stdarg.h>
 #include <stdbool.h>
@@ -97,7 +153,7 @@ int Write(int, const void*, size_t);
 //game mechanism
 
 void ApConnect(Rooms*, int, int);
-void ChooseColor(Rooms*, int, char*);
+void GameChooseColor(Rooms*, int, char*);
 void CloseRoom(Rooms*);
 void ExitCli(int, Rooms*, int, int);
 void GetOneRoomInfo(Rooms*, int, char*);

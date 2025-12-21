@@ -1,0 +1,11 @@
+# ninja log v6
+46	454	7880219316423525	CMakeFiles/sackServ.dir/src/sockwrap.c.obj	da928d489991b449
+129	456	7880219317255041	CMakeFiles/sackServ.dir/src/errfunc.c.obj	45f0bd6e0a8ccb8f
+67	456	7880219316630174	CMakeFiles/sackServ.dir/src/Queue.c.obj	bef78809fc22a5e6
+2	471	7880219315981805	CMakeFiles/sackServ.dir/src/main.c.obj	79eba70f2dba3472
+471	830	7880219320676548	bin/sackServ.exe	d562866bdfcbd6d
+88	456	7880219316845850	CMakeFiles/sackServ.dir/src/roomOp.c.obj	5e8a362ca8d26785
+25	459	7880219316215544	CMakeFiles/sackServ.dir/src/libserv.c.obj	31cbc33a75e61bb
+108	459	7880219317037398	CMakeFiles/sackServ.dir/src/gameplay.c.obj	9718b82e03729f2a
+149	486	7880219317455762	CMakeFiles/apServ.dir/src/apServ.c.obj	f007488aca429a0
+486	845	7880219320822278	bin/apServ.exe	c241f9410fd7c3cd
