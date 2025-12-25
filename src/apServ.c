@@ -186,6 +186,7 @@ void AutoPlay(int sockfd) {
             flg = 1;
             continue;
         }
+        if(buf[0] == 'S' && playerID == 0) PlayCard(sockfd, &MASK_Uc, playerID);
         if(buf[0] == 'a') continue;
         if(buf[0] == 'w') {
             Close(sockfd);
