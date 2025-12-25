@@ -12,7 +12,7 @@
 #include <stdbool.h>
 #include <signal.h>
 
-//#define DEBUG
+#define DEBUG
 #define	LISTENQ	1024
 #define	MAXLINE	4096
 #define	SERV_PORT 9877
@@ -33,13 +33,28 @@ void err_sys(const char *fmt, ...) {
     exit(1);
 }
 
+int Close(int sockfd) {
+    int n;
+    if(sockfd < 0) return 0;
+again:
+    if(close(sockfd) == -1) {
+        if(errno == EBADF) return -1;
+        if(errno == EINTR) goto again;
+        err_sys("close error");
+        return -1;
+    }
+    return 0;
+}
+
 void Listen(int sockfd, int backlog) {
     char *ptr;
     if ( (ptr = getenv("LISTENQ")) != NULL)
         backlog = atoi(ptr);
 
-    if (listen(sockfd, backlog) < 0)
+    while (listen(sockfd, backlog) < 0) {
+        if(errno == EINTR) continue;
         err_sys("listen error");
+    }
 }
 
 int Recv(int sockfd, char *recvline) {
@@ -53,14 +68,17 @@ int Recv(int sockfd, char *recvline) {
 
     sel = select(sockfd + 1, &rfds, NULL, NULL, &tv);
     if (sel < 0) {
-        if (errno == EINTR) return -1; 
+        if (errno == EINTR) return -2; 
         err_sys("Select");
         return -1;
     }
     else if (sel == 0) return -2;
     if (FD_ISSET(sockfd, &rfds)) {
         ssize_t n = recv(sockfd, recvline, MAXLINE - 1, 0);
-        if (n < 0) err_sys("Recv");
+        if (n < 0) {
+            if(errno == EINTR) return -2;
+            err_sys("Recv");
+        }
         else if (n == 0) printf("Connection closed\n");
         recvline[n] = 0;
 #ifdef DEBUG
@@ -144,7 +162,7 @@ void AutoPlay(int sockfd) {
     strncpy(buf, pos+1, n);
     srand(time(NULL));
     do {
-        if(n == -2) continue;
+        if(n < 0) continue;
         buf[n] = 0;
 #ifdef DEBUG
         printf("msg: %s\n", buf);
@@ -170,7 +188,7 @@ void AutoPlay(int sockfd) {
         }
         if(buf[0] == 'a') continue;
         if(buf[0] == 'w') {
-            close(sockfd);
+            Close(sockfd);
             return;
         }
         if(buf[0] == 'b') {
@@ -180,7 +198,7 @@ void AutoPlay(int sockfd) {
                 sscanf(buf, "be %d %d %d %d", &pID, &pID, &sPlayer, &pID);
                 aban = 0;
                 if(MASK_Uc == 1023) {
-                    close(sockfd);
+                    Close(sockfd);
                     return;
                 }
                 if(sPlayer == playerID) PlayCard(sockfd, &MASK_Uc, playerID);
@@ -190,11 +208,11 @@ void AutoPlay(int sockfd) {
             //b {PlayerID} {amount} {nPlayer} {card}
             int amount, nPlayer, cd;
             sscanf(buf, "b %d %d %d %d", &pID, &amount, &nPlayer, &cd);
-            if(pID != playerID && cd != -1) aban++;
+            if(pID != playerID && cd != -1 && flg) aban++;
             if(nPlayer == playerID && pID != playerID) {
                 //bid
                 //17 {PlayerID} 0 {rem_money} 
-                if(!flg) aban--;
+                //if(!flg) aban--;
                 sleep(3);
                 sprintf(tmp, "17 %d 0 %d", playerID, rem_money);
                 rem_money += refund[aban];
@@ -209,7 +227,7 @@ void AutoPlay(int sockfd) {
 #endif
                 sscanf(tmp, "be %d %d %d %d", &pID, &pID, &sPlayer, &pID);
                 if(MASK_Uc == 1023) {
-                    close(sockfd);
+                    Close(sockfd);
                     return;
                 }
 #ifdef DEBUG
@@ -222,7 +240,7 @@ void AutoPlay(int sockfd) {
             flg = 1;
         }
     } while((n = Recv(sockfd, buf)) != 0);
-    //close(sockfd);
+    Close(sockfd);
     return;
 }
 
@@ -243,7 +261,7 @@ int main(int argc, char **argv) {
     int opt = 1;
     if (setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
         perror("setsockopt(SO_REUSEADDR) failed");
-        close(listenfd);
+        Close(listenfd);
         exit(1);
     }
 
@@ -259,10 +277,10 @@ int main(int argc, char **argv) {
             else err_sys("accept");
         }
         if ((childpid = fork()) == 0) {
-            close(listenfd);
+            Close(listenfd);
             AutoPlay(connfd);
             exit(0);
         }
-        close(connfd);
+        Close(connfd);
     }
 }

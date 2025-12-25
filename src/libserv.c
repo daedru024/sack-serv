@@ -10,19 +10,22 @@ void ApConnect(Rooms* tar, int pID, int rID) {
     int sockfd;
     struct sockaddr_in servaddr;
     char servip[10] = "127.0.0.1";
-
+again:
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if(sockfd < 0) 
+    if(sockfd < 0) {
+        if(errno == EINTR) goto again;
         err_sys("socket error");
-
+    }
     bzero(&servaddr, sizeof(servaddr));
     servaddr.sin_family = AF_INET;
     servaddr.sin_port = htons(SERV_PORT+1);
     
     if(inet_pton(AF_INET, servip, &servaddr.sin_addr) <= 0) 
         err_sys("inet_pton error");
-    if(connect(sockfd, (struct sockaddr*) &servaddr, sizeof(servaddr)) < 0) 
-        err_sys("connect error");
+    while(connect(sockfd, (struct sockaddr*) &servaddr, sizeof(servaddr)) < 0) {
+        if(errno == EINTR) continue;
+        err_msg("connect error");
+    }
     int idx = tar->plyData[pID].i;
     if(idx != -1) {
         clients[idx].fd = sockfd;
@@ -114,7 +117,7 @@ void ExitCli(int idx, Rooms* Rm, int rID, int pID) {
             if(Rm->plyData[i].i != -1) return;
         init_RoomInfo(Rm);
 #ifdef DEBUG
-        printf("Room %d reset to empty.\n", rID);
+        printf("Reset room %d\n", rID);
 #endif
     }
 }
@@ -124,6 +127,8 @@ bool isValidStr(char* tar, int n) {
     if(n > 1 && tar[0] == '1' && tar[1] == '1') {
         //11 {RoomID} {username} {PIN}
         if(!isdigit(tar[3])) return 0;
+        for(int i=4; i<n-5; i++) 
+            if(!isalnum(tar[i]) && tar[i] != ' ' && tar[i] != '\n') return 0;
         for(int i=n-5; i<n; i++) 
             if(!isdigit(tar[i]) && tar[i] != ' ' && tar[i] != '\n') return 0;
         return 1;
@@ -134,7 +139,7 @@ bool isValidStr(char* tar, int n) {
 }
 
 void SendAll(Rooms* tar, char* msg, int c) {
-    //c: 1 print id, 2 from exitcli, 3 from exitcli and print id, 10 if ignore player 0
+    //c: 1 print id, 2 from exitcli, 3 from exitcli and print id, 10 if ignore player 0, 20 if don't save
     char tmp[MAXLINE];
     int k = (c == 10);
     for(int i=k; i<tar->num_players; i++) {
@@ -143,7 +148,7 @@ void SendAll(Rooms* tar, char* msg, int c) {
             sprintf(tmp, "%s %d \n", msg, i);
         else {
             strcpy(tmp, msg);
-            if(tmp[0] != 'a') strcpy(tar->LastBroadcast, tmp);
+            if(c != 2 && c != 20) strcpy(tar->LastBroadcast, tmp);
         }
         if(Write(clients[tar->plyData[i].i].fd, tmp, strlen(tmp)) == -1) {
             if(c != 2) {

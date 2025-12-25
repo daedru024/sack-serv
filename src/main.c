@@ -118,20 +118,25 @@ int main(int argc, char** argv) {
                     if(in_room[i] == -1) ExitCli(i, NULL, -1, -1);
                     else ExitCli(i, &room[in_room[i]], in_room[i], -1);
                 }
-                else err_sys("read error");
+                else err_msg("read error");
                 if(--nready <= 0) break;
                 continue;
             }
-            if(buf[0] == ' ') {
+            if(buf[0] == ' ') { // Heartbeat should only work when waiting in public room
 #ifdef DEBUG
                 printf("Heartbeat from %d\n", i);
 #endif
-                push(q, sockfd, in_room[i], i);
-                if(in_room[i] != -1 && room[in_room[i]].passkey != 10000 && (room[in_room[i]].stat == 0 || room[in_room[i]].stat == 4)) {
+                if(in_room[i] == -1) ;
+                else if(room[in_room[i]].stat<4 && room[in_room[i]].stat>0) ;
+                else if(room[in_room[i]].passkey != 10000 || room[in_room[i]].stat == 4) {
                     time_t currtime = time(NULL);
-                    if(difftime(currtime, room[in_room[i]].madePriv) >= 600) 
-                        CloseRoom(&room[in_room[i]]);
+                    if(difftime(currtime, room[in_room[i]].madePriv) >= 600) {
+                        if(room[in_room[i]].passkey != 10000) CloseRoom(&room[in_room[i]]);
+                        else ExitCli(room[in_room[i]].plyData[0].i, NULL, -1, -1);
+                    }
+                    else push(q, sockfd, in_room[i], i);
                 }
+                else push(q, sockfd, in_room[i], i);
                 if(--nready <= 0) break;
                 continue;
             }
@@ -182,7 +187,6 @@ int main(int argc, char** argv) {
                     GetOneRoomInfo(&room[rID], rID, tmp);
                     SendAll(&room[rID], tmp, 1);
                     in_room[i] = rID;
-                    //TODO
                 }
                 if(--nready <= 0) break;
                 continue;
@@ -226,7 +230,7 @@ int main(int argc, char** argv) {
                     Unlock(&room[rID], i);
                 break;
             default:
-                err_quit("Unknown room status %d\n", room[rID].stat);
+                err_msg("Unknown room status %d\n", room[rID].stat);
             }
             if(--nready <= 0) break;
         }

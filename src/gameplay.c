@@ -62,7 +62,9 @@ void RecvBid(Rooms* tar, char* msg) {
     sscanf(msg, "17 %d %d %d", &pID, &pri, &rem);
     //b {PlayerID} {amount} {nPlayer} {card}
     if(pID != tar->nPlayer || (pri <= tar->lstbid && pri != 0)) nply = -1;
-    else if(rem != tar->plyData[pID].rem_money) nply = -1;
+    else if(rem != tar->plyData[pID].rem_money) {
+        nply = -1;
+    }
     else if(pri == 0) {
         tar->plyData[pID].rem_money += tar->abdMoney[tar->aban];
         tar->plyData[pID].LastBid = -1;
@@ -83,8 +85,11 @@ void RecvBid(Rooms* tar, char* msg) {
         nply = tar->nPlayer;
     }
     sprintf(buf, "b %d %d %d %d\n", pID, pri, nply, cd);
-    SendAll(tar, buf, 0);
+    int k = (nply == -1) ? 20 : 0;
+    SendAll(tar, buf, k);
     if(tar->stat == 0) return;
+    if(nply == -1 && rem != tar->plyData[pID].rem_money) 
+        ExitCli(tar->plyData[pID].i, tar, in_room[tar->plyData[pID].i], pID);
     if(tar->aban >= tar->num_players-1 && tar->plyData[tar->nPlayer].LastBid != 0) {
         //end bid
         pri = -1;
@@ -135,9 +140,11 @@ void RecvPlay(Rooms* tar, char* msg) {
     }
     //c {PlayerID} {code}
     sprintf(buf, "c %d %d\n", pID, cd);
-    SendAll(tar, buf, 0);
+    int k = (cd == 0) ? 0 : 20;
+    SendAll(tar, buf, k);
     if(tar->stat == 0) return;
     if(cd == 1) tar->nPlayer = (tar->nPlayer+1) % tar->num_players;
+    else if(cd == -1) ExitCli(tar->plyData[pID].i, tar, in_room[tar->plyData[pID].i], pID);
 
     if(tar->nPlayer == tar->sPlayer) {
         tar->stat = 2;
