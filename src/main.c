@@ -226,8 +226,8 @@ int main(int argc, char** argv) {
                     ChooseColor(&room[rID], i, buf);
                 else if(buf[0] == '3') 
                     Lock(&room[rID], i);
-                else if(buf[0] == '2') 
-                    Unlock(&room[rID], i);
+                // else if(buf[0] == '2') 
+                //     Unlock(&room[rID], i);
                 break;
             default:
                 err_msg("Unknown room status %d\n", room[rID].stat);
