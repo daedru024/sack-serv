@@ -3,6 +3,7 @@
 | Message | Format | Details |
 | -------- | -------- | -------- |
 | Start game | `GAMESTART` | - |
+| Start round 1 | `ROUND_START` | Sent to all players but host |
 | Played card | `c {PlayerID} {code}` | `code` `1` if played<br>`0` if not your turn<br>`-1` if error |
 | PlayerID bid | `b {PlayerID} {amount} {NextPlayerID} {cardID}` | - |
 | End bid | `be {PlayerID} {amount} {sPlayer} {LastCard}` | `PlayerID` wins with price `amount` <br> `PlayerID` -1 if nobody won |

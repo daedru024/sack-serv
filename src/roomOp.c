@@ -18,6 +18,10 @@ void ChooseColor(Rooms* Rm, int idx, char* msg) {
         }
         else if(Rm->plyData[i].i == idx) k = i;
     }
+    if(col < 0 || col > 4) {
+        ExitCli(idx, Rm, in_room[idx], k);
+        return;
+    }
     Rm->plyData[k].col = col;
 #ifdef DEBUG
     printf("Chose color %d for %d\n", col, k);
@@ -41,19 +45,22 @@ void GetOneRoomInfo(Rooms* tar, int rID, char* ret) {
         sprintf(tmp, "%s %d ", tar->plyData[i].username, tar->plyData[i].col);
         strcat(ret, tmp);
     }
-    sprintf(ret, "%s%d %04d ", ret, (tar->stat==4 && tar->rnd==0), tar->passkey);
+    sprintf(tmp, "%d %04d ", (tar->stat==4 && tar->rnd==0), tar->passkey);
+    strcat(ret, tmp);
     return;
 }
 
 void GetRoomInfo(Rooms* tar, int rID, char* ret) {
     if(tar->stat == 0) {
         // available
+        char tmp[20];
         sprintf(ret, "ra %d %d ", rID, tar->num_players);
         for(int i=0; i<tar->num_players; i++) {
-            sprintf(ret, "%s%s %d ", ret, tar->plyData[i].username, tar->plyData[i].col);
+            sprintf(tmp, "%s %d ", tar->plyData[i].username, tar->plyData[i].col);
+            strcat(ret, tmp);
         }
-        if(tar->passkey == 10000) sprintf(ret, "%s0 ", ret);
-        else sprintf(ret, "%s1 ", ret);
+        if(tar->passkey == 10000) strcat(ret, "0 ");
+        else strcat(ret, "1 ");
     }
     else // unavailable
         sprintf(ret, "ru %d %d %d ", rID, tar->num_players, tar->rnd);
@@ -111,7 +118,10 @@ void JoinRoom(Rooms* tar, char* usrn, int idx) {
     int playerID = tar->num_players;
     strcpy(tar->plyData[playerID].username, usrn);
     tar->plyData[playerID].i = idx;
-    if(++tar->num_players == 5) tar->stat = 4;
+    if(++tar->num_players == 5) {
+        tar->stat = 4;
+        if(tar->passkey == 10000) tar->madePriv = time(NULL);
+    }
     return;
 }
 
@@ -150,7 +160,8 @@ void Lock(Rooms* tar, int i) {
 void MakePrivate(Rooms* tar, int idx, char* Pwd, int k) {
     int PIN;
     sscanf(Pwd, "5 %d", &PIN);
-    if(PIN == 10000 && tar->plyData[0].i == idx) 
+    if(PIN > 10000 || PIN < 0) ;
+    else if(PIN == 10000 && tar->plyData[0].i == idx) 
         tar->passkey = 10000;
     else if(k >= 2 && tar->passkey == 10000) {
         sprintf(Pwd, "re 6\n"); //6 too many private rooms
@@ -160,7 +171,7 @@ void MakePrivate(Rooms* tar, int idx, char* Pwd, int k) {
     else if(tar->plyData[0].i == idx && k < 2) {
         tar->passkey = PIN;
     }
-    if(tar->passkey != 10000) tar->madePriv = time(NULL);
+    if(PIN>0 && PIN<10000 && tar->passkey != 10000) tar->madePriv = time(NULL);
     char tmp[MAXLINE];  
     GetOneRoomInfo(tar, in_room[idx], tmp);
     SendAll(tar, tmp, 1);

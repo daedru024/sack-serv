@@ -21,7 +21,7 @@
 #define	MAXLINE	4096
 #define	SERV_PORT 9877
 
-//#define DEBUG
+#define DEBUG
 
 //data struct
 

@@ -10,10 +10,15 @@ int Accept(int sockfd, struct sockaddr* sa, socklen_t *ptr) {
     int n;
 again:
     if((n = accept(sockfd, sa, ptr)) < 0) {
-        if(errno == ECONNABORTED)
+        if(errno == ECONNABORTED || errno == EINTR)
             goto again;
-        else 
+#ifdef EPROTO
+        else if(errno == EPROTO) goto again;
+#endif
+        else {
             err_sys("accept error");
+            return -1;
+        }
     }
     return n;
 }
@@ -23,11 +28,13 @@ int Close(int idx) {
     if(idx < 0 || clients[idx].fd < 0) return 0;
     Delete(q, idx);
     in_room[idx] = -1;
+again:
     if(close(clients[idx].fd) == -1) {
         if(errno == EBADF) {
             clients[idx].fd = -1;
             return -1;
         }
+        if(errno == EINTR) goto again;
         err_sys("close error");
         return -1;
     }
@@ -38,8 +45,10 @@ int Close(int idx) {
 int Closefd(int sockfd) {
     int n;
     if(sockfd < 0) return 0;
+again:
     if(close(sockfd) == -1) {
         if(errno == EBADF) return -1;
+        if(errno == EINTR) goto again;
         err_sys("close error");
         return -1;
     }
@@ -58,8 +67,11 @@ void Listen(int sockfd, int backlog) {
 
 int Poll(struct pollfd *fdarr, unsigned long nfds) {
     int n;
-    if((n = poll(fdarr, nfds, 5000)) < 0) 
+again:
+    if((n = poll(fdarr, nfds, 5000)) < 0) {
+        if(errno == EINTR) goto again;
         err_sys("poll error");
+    }
     return n;
 }
 
@@ -73,7 +85,7 @@ int Write(int sockfd, const void *vptr, size_t n) {
             if(nw<0 && errno == EINTR) continue;
             if(nw == 0) return -1;
             else {
-                err_sys("Write error");
+                err_msg("Write error");
                 return -1;
             }
         }
